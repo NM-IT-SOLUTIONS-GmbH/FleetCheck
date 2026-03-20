@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FleetCheck Pro</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #161920;
+    --surface2: #1e2230;
+    --surface3: #252a3a;
+    --accent: #f5a623;
+    --accent2: #e8891a;
+    --green: #2ecc71;
+    --red: #e74c3c;
+    --blue: #3b82f6;
+    --text: #f0f2f8;
+    --muted: #7c84a0;
+    --border: #2a2f42;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, .brand { font-family: 'Syne', sans-serif; }
+
+  /* ─── SCREENS ─── */
+  .screen { display: none; min-height: 100vh; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* ─── LOGIN ─── */
+  #screen-login {
+    background: linear-gradient(160deg, #0d0f14 0%, #1a1f35 100%);
+    align-items: center; justify-content: center; padding: 24px;
+  }
+
+  .login-box {
+    width: 100%; max-width: 420px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 40px 32px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+  }
+
+  .logo-area { text-align: center; margin-bottom: 36px; }
+  .logo-img {
+    width: 80px; height: 80px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 20px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 28px; font-weight: 800; color: #fff;
+    margin-bottom: 12px;
+    box-shadow: 0 8px 32px rgba(245,166,35,0.3);
+  }
+  .logo-title { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+  .logo-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    border-color: var(--accent);
+  }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 16px;
+    border: none; border-radius: var(--radius-sm); cursor: pointer;
+    font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700;
+    transition: all 0.2s; text-decoration: none;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(245,166,35,0.35);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(245,166,35,0.45); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-secondary { background: var(--surface3); color: var(--text); border: 1.5px solid var(--border); }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-green { background: var(--green); color: #fff; }
+  .btn-sm { padding: 10px 16px; font-size: 14px; width: auto; }
+  .btn-icon { width: 40px; height: 40px; padding: 0; border-radius: 10px; font-size: 18px; }
+
+  .demo-hint {
+    margin-top: 20px; padding: 14px;
+    background: var(--surface2); border-radius: var(--radius-sm);
+    font-size: 12px; color: var(--muted); text-align: center; line-height: 1.6;
+  }
+  .demo-hint strong { color: var(--accent); }
+
+  /* ─── TOP BAR ─── */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
+  .topbar-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--accent); color: #fff;
+    border-radius: 20px; font-size: 11px; font-weight: 700;
+    padding: 2px 8px; min-width: 20px;
+  }
+  .badge-red { background: var(--red); }
+  .badge-green { background: var(--green); }
+
+  /* ─── PAGE CONTENT ─── */
+  .page-content { flex: 1; padding: 20px; overflow-y: auto; }
+
+  /* ─── DRIVER HOME ─── */
+  .driver-hero {
+    background: linear-gradient(135deg, var(--surface2), var(--surface3));
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 20px;
+    position: relative; overflow: hidden;
+  }
+  .driver-hero::before {
+    content: '';
+    position: absolute; top: -20px; right: -20px;
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(245,166,35,0.15), transparent);
+    border-radius: 50%;
+  }
+  .greeting { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .driver-name { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; }
+  .driver-date { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  .big-btn {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 28px 24px;
+    cursor: pointer;
+    transition: all 0.25s;
+    width: 100%;
+    text-align: left;
+    margin-bottom: 14px;
+    position: relative; overflow: hidden;
+  }
+  .big-btn:active { transform: scale(0.98); }
+  .big-btn .bb-icon {
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; margin-bottom: 14px;
+  }
+  .big-btn .bb-icon.orange { background: rgba(245,166,35,0.15); }
+  .big-btn .bb-icon.blue { background: rgba(59,130,246,0.15); }
+  .big-btn .bb-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .big-btn .bb-desc { font-size: 13px; color: var(--muted); }
+  .big-btn:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+
+  /* Notification badge on big btn */
+  .notif-dot {
+    position: absolute; top: 16px; right: 16px;
+    width: 10px; height: 10px;
+    background: var(--red); border-radius: 50%;
+    display: none;
+  }
+  .notif-dot.show { display: block; }
+
+  /* ─── SECTION HEADER ─── */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .section-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
+
+  /* ─── ABFAHRTSKONTROLLE ─── */
+  .question-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 14px;
+    transition: border-color 0.2s;
+  }
+  .question-card.has-issue { border-color: var(--red); }
+  .question-card.ok { border-color: var(--green); }
+  .question-num { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .question-text { font-size: 15px; font-weight: 500; margin-bottom: 14px; line-height: 1.4; }
+  .answer-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .answer-btn {
+    width: 100%;
+    padding: 12px 4px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+    background: var(--surface2); color: var(--muted);
+    transition: all 0.15s; text-align: center;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .answer-btn.selected-ja { background: rgba(46,204,113,0.15); border-color: var(--green); color: var(--green); }
+  .answer-btn.selected-io { background: rgba(59,130,246,0.15); border-color: var(--blue); color: var(--blue); }
+  .answer-btn.selected-nein { background: rgba(231,76,60,0.15); border-color: var(--red); color: var(--red); }
+
+  .mangel-area {
+    margin-top: 12px; display: none;
+    animation: slideDown 0.2s ease;
+  }
+  .mangel-area.show { display: block; }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .photo-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .photo-thumb {
+    width: 70px; height: 70px; border-radius: 10px;
+    object-fit: cover; border: 1.5px solid var(--border);
+    cursor: pointer;
+  }
+  .photo-add-btn {
+    width: 70px; height: 70px; border-radius: 10px;
+    background: var(--surface2); border: 1.5px dashed var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; color: var(--muted); cursor: pointer;
+    transition: all 0.2s;
+  }
+  .photo-add-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ─── SIGNATURE ─── */
+  .sig-area {
+    background: var(--surface2);
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius);
+    overflow: hidden; position: relative;
+  }
+  .sig-canvas { display: block; width: 100%; height: 160px; cursor: crosshair; touch-action: none; }
+  .sig-clear {
+    position: absolute; top: 8px; right: 8px;
+    background: var(--surface3); border: none;
+    color: var(--muted); font-size: 11px; padding: 4px 10px;
+    border-radius: 6px; cursor: pointer;
+  }
+
+  /* ─── PROGRESS BAR ─── */
+  .progress-wrap { background: var(--surface2); border-radius: 4px; height: 6px; margin-bottom: 20px; }
+  .progress-fill { height: 6px; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 4px; transition: width 0.3s; }
+
+  /* ─── ADMIN DASHBOARD ─── */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 16px;
+  }
+  .stat-val { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; }
+  .stat-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .stat-card.highlight { border-color: var(--accent); background: rgba(245,166,35,0.06); }
+
+  /* ─── TABLE / LIST ─── */
+  .list-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden; margin-bottom: 14px;
+  }
+  .list-item {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .list-item:last-child { border-bottom: none; }
+  .list-item:hover { background: var(--surface2); }
+  .list-avatar {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; color: #fff;
+    flex-shrink: 0;
+  }
+  .list-info { flex: 1; min-width: 0; }
+  .list-name { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .list-meta { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .status-dot.active { background: var(--green); }
+  .status-dot.inactive { background: var(--red); }
+
+  /* ─── MODAL ─── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 200;
+    align-items: flex-end; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px 24px 0 0;
+    padding: 24px;
+    width: 100%; max-width: 480px;
+    max-height: 90vh; overflow-y: auto;
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+  .modal-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; margin-bottom: 20px; }
+
+  /* ─── TOAST ─── */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 50px; padding: 12px 24px;
+    font-size: 14px; font-weight: 500;
+    z-index: 300; transition: transform 0.3s; white-space: nowrap;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { border-color: var(--green); color: var(--green); }
+  .toast.error { border-color: var(--red); color: var(--red); }
+
+  /* ─── NOTIFICATION ─── */
+  .notif-card {
+    background: var(--surface);
+    border: 1.5px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .notif-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .notif-from { font-size: 11px; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .notif-time { font-size: 11px; color: var(--muted); }
+  .notif-msg { font-size: 14px; line-height: 1.5; margin-bottom: 12px; }
+  .notif-card.read { border-color: var(--border); opacity: 0.6; }
+
+  /* ─── TABS ─── */
+  .tabs { display: flex; background: var(--surface2); border-radius: var(--radius-sm); padding: 4px; margin-bottom: 20px; }
+  .tab {
+    flex: 1; padding: 10px;
+    border: none; border-radius: 8px;
+    background: transparent; color: var(--muted);
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; text-align: center;
+  }
+  .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+
+  /* ─── SEARCH ─── */
+  .search-wrap { position: relative; margin-bottom: 16px; }
+  .search-wrap input { padding-left: 40px; }
+  .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 16px; }
+
+  /* ─── OFFLINE BANNER ─── */
+  .offline-banner {
+    background: var(--red); color: #fff;
+    text-align: center; font-size: 13px; font-weight: 600;
+    padding: 8px; display: none;
+  }
+  .offline-banner.show { display: block; }
+
+  /* ─── SUCCESS SCREEN ─── */
+  .success-wrap { text-align: center; padding: 40px 24px; }
+  .success-icon {
+    width: 80px; height: 80px; background: rgba(46,204,113,0.15);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 36px; margin: 0 auto 20px;
+    animation: pulse 1s ease;
+  }
+  @keyframes pulse { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+  /* ─── FAB ─── */
+  .fab {
+    position: fixed; bottom: 24px; right: 24px;
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 18px;
+    color: #fff; font-size: 24px; cursor: pointer;
+    box-shadow: 0 8px 24px rgba(245,166,35,0.4);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; z-index: 50;
+  }
+  .fab:hover { transform: scale(1.08); }
+
+  /* ─── REPORT CARD ─── */
+  .report-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .report-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .report-driver { font-weight: 600; font-size: 15px; }
+  .report-date { font-size: 12px; color: var(--muted); }
+  .report-status { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 10px; font-size: 11px; font-weight: 600;
+  }
+  .chip.ok { color: var(--green); border-color: rgba(46,204,113,0.3); }
+  .chip.warn { color: var(--red); border-color: rgba(231,76,60,0.3); }
+
+  /* misc */
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .text-muted { color: var(--muted); font-size: 13px; }
+  .text-center { text-align: center; }
+  .mt-8 { margin-top: 8px; }
+  .mt-12 { margin-top: 12px; }
+  .mt-16 { margin-top: 16px; }
+  .mb-8 { margin-bottom: 8px; }
+  .flex { display: flex; }
+  .gap-8 { gap: 8px; }
+  .items-center { align-items: center; }
+  .justify-between { justify-content: space-between; }
+  .hidden { display: none !important; }
+
+  input[type="file"] { display: none; }
+  .offline-item { opacity: 0.6; }
+  .sync-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(231,76,60,0.15); border: 1px solid var(--red);
+    color: var(--red); border-radius: 20px; font-size: 10px; font-weight: 700;
+    padding: 2px 8px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+</style>
+</head>
+<body>
+
+<!-- OFFLINE BANNER -->
+<div class="offline-banner" id="offline-banner">📡 Offline – Daten werden gespeichert und synchronisiert sobald Verbindung besteht</div>
+
+<!-- ═══════════════════════════════════════
+     SCREEN: LOGIN
+═══════════════════════════════════════ -->
+<div class="screen active" id="screen-login">
+  <div class="login-box">
+    <div class="logo-area">
+      <div class="logo-img" id="logo-display">FC</div>
+      <div class="logo-title">FleetCheck Pro</div>
+      <div class="logo-sub">Fahrzeugverwaltung & Kontrolle</div>
+    </div>
+    <div class="form-group">
+      <label>Benutzername</label>
+      <input type="text" id="login-user" placeholder="z.B. fahrer1" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label>Kennwort</label>
+      <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()">🔐 Anmelden</button>
+    <div class="demo-hint">
+      Demo-Zugänge:<br>
+      <strong>admin</strong> / <strong>admin123</strong> → Adminbereich<br>
+      <strong>fahrer1</strong> / <strong>pass123</strong> → Fahrerbereich<br>
+      <strong>fahrer2</strong> / <strong>pass123</strong> → Fahrerbereich
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     SCREEN: DRIVER HOME
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-driver-home">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">FleetCheck Pro</div>
+      <div class="topbar-sub" id="driver-topbar-sub"></div>
+    </div>
+    <div class="flex gap-8 items-center">
+      <button class="btn btn-secondary btn-sm" onclick="showDriverNotifs()" style="position:relative">
+        🔔 <span id="notif-badge" class="badge badge-red" style="display:none">0</span>
+      </button>
+      <button class="btn btn-secondary btn-sm" onclick="doLogout()">Abmelden</button>
+    </div>
+  </div>
+  <div class="page-content">
+    <div class="driver-hero">
+      <div class="greeting">Guten Tag,</div>
+      <div class="driver-name" id="driver-welcome-name"></div>
+      <div class="driver-date" id="driver-date"></div>
+    </div>
+
+    <!-- Pending offline indicator -->
+    <div id="offline-pending-wrap" class="hidden">
+      <div style="background:rgba(231,76,60,0.1);border:1px solid var(--red);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:13px;">
+        ⏳ <strong id="offline-pending-count">0</strong> Einträge warten auf Synchronisierung
+      </div>
+    </div>
+
+    <div class="big-btn" onclick="goTo('screen-abfahrt')">
+      <div class="bb-icon orange">🚛</div>
+      <div class="bb-title">Abfahrtskontrolle</div>
+      <div class="bb-desc">Fahrzeugzustand prüfen und dokumentieren</div>
+    </div>
+    <div class="big-btn" onclick="goTo('screen-pod')">
+      <div class="bb-icon blue">📄</div>
+      <div class="bb-title">POD hochladen</div>
+      <div class="bb-desc">Liefernachweise und Belege einscannen</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     SCREEN: ABFAHRTSKONTROLLE
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-abfahrt">
+  <div class="topbar">
+    <button class="btn btn-secondary btn-sm btn-icon" onclick="goBack()">←</button>
+    <div style="flex:1;margin-left:12px">
+      <div class="topbar-title">Abfahrtskontrolle</div>
+    </div>
+  </div>
+  <div class="page-content">
+    <div class="progress-wrap"><div class="progress-fill" id="abfahrt-progress" style="width:0%"></div></div>
+    <div id="abfahrt-questions"></div>
+
+    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px">
+      <div class="question-num">Unterschrift</div>
+      <div class="question-text">Bitte hier unterschreiben:</div>
+      <div class="sig-area">
+        <canvas class="sig-canvas" id="sig-canvas-abfahrt"></canvas>
+        <button class="sig-clear" onclick="clearSig('sig-canvas-abfahrt')">Löschen</button>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="submitAbfahrt()" style="margin-bottom:20px">
+      ✅ Abfahrtskontrolle absenden
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     SCREEN: POD UPLOAD
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-pod">
+  <div class="topbar">
+    <button class="btn btn-secondary btn-sm btn-icon" onclick="goBack()">←</button>
+    <div style="flex:1;margin-left:12px">
+      <div class="topbar-title">POD hochladen</div>
+    </div>
+  </div>
+  <div class="page-content">
+    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px">
+      <div class="question-text" style="margin-bottom:14px">📷 Belege fotografieren oder hochladen</div>
+      <div class="photo-preview" id="pod-photos"></div>
+      <div class="photo-add-btn mt-8" onclick="triggerPhotoUpload('pod-file-input')">+</div>
+      <input type="file" id="pod-file-input" accept="image/*" capture="environment" multiple onchange="handlePodPhotos(event)">
+    </div>
+    <div class="form-group">
+      <label>Bemerkungen (optional)</label>
+      <textarea id="pod-remarks" placeholder="z.B. Kunde abwesend, Übergabe an Nachbarn..."></textarea>
+    </div>
+    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px">
+      <div class="question-num">Unterschrift</div>
+      <div class="question-text">Bitte hier unterschreiben:</div>
+      <div class="sig-area">
+        <canvas class="sig-canvas" id="sig-canvas-pod"></canvas>
+        <button class="sig-clear" onclick="clearSig('sig-canvas-pod')">Löschen</button>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="submitPOD()" style="margin-bottom:20px">
+      📤 POD absenden
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     SCREEN: SUCCESS
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-success">
+  <div class="topbar">
+    <div class="topbar-title">Fertig</div>
+  </div>
+  <div class="page-content">
+    <div class="success-wrap">
+      <div class="success-icon" id="success-icon">✅</div>
+      <h2 id="success-title" style="font-size:22px;margin-bottom:10px">Erfolgreich gesendet!</h2>
+      <p id="success-msg" class="text-muted" style="line-height:1.6"></p>
+      <div class="mt-16" id="success-pdf-btn-wrap">
+        <button class="btn btn-secondary" onclick="downloadLastPDF()">📥 PDF herunterladen</button>
+      </div>
+      <button class="btn btn-primary mt-12" onclick="goTo('screen-driver-home')">← Zurück zur Startseite</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     SCREEN: DRIVER NOTIFICATIONS
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-driver-notifs">
+  <div class="topbar">
+    <button class="btn btn-secondary btn-sm btn-icon" onclick="goBack()">←</button>
+    <div style="flex:1;margin-left:12px"><div class="topbar-title">Nachrichten</div></div>
+  </div>
+  <div class="page-content" id="driver-notifs-list"></div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     SCREEN: ADMIN DASHBOARD
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-admin-home">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Admin Dashboard</div>
+      <div class="topbar-sub">FleetCheck Pro</div>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="doLogout()">Abmelden</button>
+  </div>
+  <div class="page-content">
+    <div class="stats-grid">
+      <div class="stat-card highlight">
+        <div class="stat-val" id="stat-fahrer">0</div>
+        <div class="stat-label">Aktive Fahrer</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-checks">0</div>
+        <div class="stat-label">Kontrollen heute</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-pods">0</div>
+        <div class="stat-label">PODs gesamt</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-maengel">0</div>
+        <div class="stat-label">Offene Mängel</div>
+      </div>
+    </div>
+
+    <div class="tabs" id="admin-tabs">
+      <button class="tab active" onclick="adminTab('fahrer')">👥 Fahrer</button>
+      <button class="tab" onclick="adminTab('kontrollen')">📋 Kontrollen</button>
+      <button class="tab" onclick="adminTab('pods')">📄 PODs</button>
+      <button class="tab" onclick="adminTab('nachrichten')">🔔 Nachrichten</button>
+    </div>
+
+    <!-- FAHRER TAB -->
+    <div id="tab-fahrer">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Fahrer suchen..." oninput="filterFahrer(this.value)" style="padding-left:40px">
+      </div>
+      <div id="fahrer-list"></div>
+    </div>
+
+    <!-- KONTROLLEN TAB -->
+    <div id="tab-kontrollen" class="hidden">
+      <div class="flex gap-8 mb-8">
+        <select id="filter-check-fahrer" onchange="renderKontrollen()" style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px">
+          <option value="">Alle Fahrer</option>
+        </select>
+        <input type="date" id="filter-check-date" onchange="renderKontrollen()" style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px">
+      </div>
+      <div id="kontrollen-list"></div>
+    </div>
+
+    <!-- PODS TAB -->
+    <div id="tab-pods" class="hidden">
+      <div class="flex gap-8 mb-8">
+        <select id="filter-pod-fahrer" onchange="renderPODs()" style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px">
+          <option value="">Alle Fahrer</option>
+        </select>
+      </div>
+      <div id="pods-list"></div>
+    </div>
+
+    <!-- NACHRICHTEN TAB -->
+    <div id="tab-nachrichten" class="hidden">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:16px">
+        <div class="section-title mb-8">Neue Nachricht senden</div>
+        <div class="form-group">
+          <label>Empfänger</label>
+          <select id="notif-recipient" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-size:14px">
+            <option value="all">Alle Fahrer</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Nachricht</label>
+          <textarea id="notif-message" placeholder="z.B. Routenänderung auf A3, bitte über A61 fahren..."></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="sendNotification()">📨 Senden</button>
+      </div>
+      <div class="section-title mb-8">Gesendete Nachrichten</div>
+      <div id="sent-notifs-list"></div>
+    </div>
+  </div>
+
+  <!-- FAB: Add driver -->
+  <button class="fab" id="fab-add" onclick="openAddDriver()">+</button>
+</div>
+
+<!-- ─── MODAL: FAHRER DETAIL ─── -->
+<div class="modal-overlay" id="modal-fahrer">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-fahrer-title">Fahrer anlegen</div>
+    <input type="hidden" id="modal-fahrer-id">
+    <div class="form-group"><label>Vorname</label><input type="text" id="f-vorname" placeholder="Max"></div>
+    <div class="form-group"><label>Nachname</label><input type="text" id="f-nachname" placeholder="Mustermann"></div>
+    <div class="form-group"><label>E-Mail</label><input type="email" id="f-email" placeholder="max@firma.de"></div>
+    <div class="form-group"><label>Benutzername</label><input type="text" id="f-user" placeholder="max.mustermann"></div>
+    <div class="form-group"><label>Passwort</label><input type="password" id="f-pass" placeholder="••••••••"></div>
+    <div class="form-group"><label>E-Mail Abfahrtskontrolle</label><input type="email" id="f-email1" placeholder="kontrolle@firma.de"></div>
+    <div class="form-group"><label>E-Mail POD</label><input type="email" id="f-email2" placeholder="pod@firma.de"></div>
+    <div class="form-group" id="status-group">
+      <label>Status</label>
+      <select id="f-status">
+        <option value="active">Aktiv</option>
+        <option value="inactive">Deaktiviert</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="saveDriver()">💾 Speichern</button>
+    <button class="btn btn-secondary mt-8" id="delete-driver-btn" onclick="deleteDriver()">🗑 Fahrer löschen</button>
+    <button class="btn btn-secondary mt-8" onclick="closeModal('modal-fahrer')">Abbrechen</button>
+  </div>
+</div>
+
+<!-- ─── MODAL: KONTROLLE DETAIL ─── -->
+<div class="modal-overlay" id="modal-kontrolle">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Abfahrtskontrolle</div>
+    <div id="modal-kontrolle-content"></div>
+    <button class="btn btn-secondary mt-8" onclick="closeModal('modal-kontrolle')">Schließen</button>
+  </div>
+</div>
+
+<!-- ─── MODAL: POD DETAIL ─── -->
+<div class="modal-overlay" id="modal-pod">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">POD Details</div>
+    <div id="modal-pod-content"></div>
+    <button class="btn btn-secondary mt-8" onclick="closeModal('modal-pod')">Schließen</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════════════════════════════ SCRIPT ═══════════════════════════════════════ -->
+<script>
+// ─── DATA STORE ───────────────────────────────────────────────────
+const DB = {
+  admins: [
+    { username: 'admin', password: 'admin123', name: 'Administrator' }
+  ],
+  drivers: [
+    { id: 'd1', vorname: 'Thomas', nachname: 'Müller', email: 'mueller@fleet.de', username: 'fahrer1', password: 'pass123', email1: 'kontrolle@fleet.de', email2: 'pod@fleet.de', status: 'active' },
+    { id: 'd2', vorname: 'Anna', nachname: 'Schmidt', email: 'schmidt@fleet.de', username: 'fahrer2', password: 'pass123', email1: 'kontrolle@fleet.de', email2: 'pod@fleet.de', status: 'active' },
+    { id: 'd3', vorname: 'Klaus', nachname: 'Weber', email: 'weber@fleet.de', username: 'fahrer3', password: 'pass123', email1: 'info@fleet.de', email2: 'pod@fleet.de', status: 'inactive' },
+  ],
+  checks: [],
+  pods: [],
+  notifications: []
+};
+
+const QUESTIONS = [
+  'Fahrzeug außen ohne sichtbare Schäden?',
+  'Reifen in Ordnung?',
+  'Beleuchtung funktionsfähig?',
+  'Spiegel in Ordnung?',
+  'Bremsen ohne Auffälligkeiten?',
+  'Ölstand kontrolliert?',
+  'Kühlwasser in Ordnung?',
+  'Ladung gesichert?',
+  'Warnweste, Warndreieck und Verbandskasten vorhanden?',
+  'Fahrzeugpapiere vorhanden?'
+];
+
+// Pre-load some demo data
+(function loadDemoData() {
+  const now = new Date();
+  const yesterday = new Date(now - 86400000);
+  DB.checks = [
+    { id: 'c1', driverId: 'd1', driverName: 'Thomas Müller', timestamp: yesterday.toISOString(), answers: QUESTIONS.map((q,i) => ({ question: q, answer: i === 4 ? 'nein' : 'ja', remark: i===4 ? 'Leichtes Quietschen' : '', photos: [] })), signature: '', offline: false },
+    { id: 'c2', driverId: 'd2', driverName: 'Anna Schmidt', timestamp: now.toISOString(), answers: QUESTIONS.map(q => ({ question: q, answer: 'ja', remark: '', photos: [] })), signature: '', offline: false }
+  ];
+  DB.pods = [
+    { id: 'p1', driverId: 'd1', driverName: 'Thomas Müller', timestamp: yesterday.toISOString(), photos: [], remarks: 'Kunde anwesend', signature: '', offline: false },
+    { id: 'p2', driverId: 'd2', driverName: 'Anna Schmidt', timestamp: now.toISOString(), photos: [], remarks: '', signature: '', offline: false }
+  ];
+  DB.notifications = [
+    { id: 'n1', from: 'Admin', to: 'd1', message: 'Bitte Route über A61 nehmen – A3 gesperrt wegen Unfall.', timestamp: new Date(now - 3600000).toISOString(), read: false },
+    { id: 'n2', from: 'Admin', to: 'all', message: 'Wartung aller Fahrzeuge am Freitag. Bitte bis 14:00 Uhr zurück im Depot.', timestamp: new Date(now - 7200000).toISOString(), read: false }
+  ];
+})();
+
+// ─── APP STATE ───────────────────────────────────────────────────
+let currentUser = null;
+let currentRole = null;
+let abfahrtAnswers = {};
+let abfahrtPhotos = {};
+let podPhotos = [];
+let lastPDFBlob = null;
+let screenHistory = [];
+let sigPads = {};
+let offlineQueue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
+
+// ─── OFFLINE DETECTION ───────────────────────────────────────────
+let isOnline = navigator.onLine;
+function updateOnlineStatus() {
+  isOnline = navigator.onLine;
+  document.getElementById('offline-banner').classList.toggle('show', !isOnline);
+  if (isOnline && offlineQueue.length > 0) syncOfflineQueue();
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+
+function syncOfflineQueue() {
+  if (offlineQueue.length === 0) return;
+  offlineQueue.forEach(item => {
+    if (item.type === 'check') DB.checks.push(item.data);
+    if (item.type === 'pod') DB.pods.push(item.data);
+  });
+  offlineQueue = [];
+  localStorage.setItem('offlineQueue', '[]');
+  showToast('✅ ' + offlineQueue.length + ' Einträge synchronisiert!', 'success');
+  updateOfflinePending();
+}
+
+function saveOffline(type, data) {
+  offlineQueue.push({ type, data });
+  localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
+  updateOfflinePending();
+}
+
+function updateOfflinePending() {
+  const wrap = document.getElementById('offline-pending-wrap');
+  const cnt = document.getElementById('offline-pending-count');
+  if (offlineQueue.length > 0) { wrap.classList.remove('hidden'); cnt.textContent = offlineQueue.length; }
+  else { wrap.classList.add('hidden'); }
+}
+
+// ─── ROUTING ─────────────────────────────────────────────────────
+function goTo(id) {
+  const cur = document.querySelector('.screen.active');
+  if (cur) screenHistory.push(cur.id);
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+  if (id === 'screen-abfahrt') initAbfahrt();
+  if (id === 'screen-pod') initPOD();
+  if (id === 'screen-admin-home') refreshAdmin();
+  if (id === 'screen-driver-home') refreshDriverHome();
+  if (id === 'screen-driver-notifs') renderDriverNotifs();
+}
+
+function goBack() {
+  if (screenHistory.length > 0) {
+    const prev = screenHistory.pop();
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(prev).classList.add('active');
+  }
+}
+
+// ─── LOGIN ────────────────────────────────────────────────────────
+function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value.trim();
+  const admin = DB.admins.find(a => a.username === u && a.password === p);
+  if (admin) { currentUser = admin; currentRole = 'admin'; goTo('screen-admin-home'); return; }
+  const driver = DB.drivers.find(d => d.username === u && d.password === p && d.status === 'active');
+  if (driver) { currentUser = driver; currentRole = 'driver'; goTo('screen-driver-home'); return; }
+  showToast('❌ Benutzername oder Kennwort falsch', 'error');
+}
+
+document.getElementById('login-pass').addEventListener('keypress', e => { if (e.key === 'Enter') doLogin(); });
+
+function doLogout() {
+  currentUser = null; currentRole = null; screenHistory = [];
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  goTo('screen-login');
+}
+
+// ─── DRIVER HOME ─────────────────────────────────────────────────
+function refreshDriverHome() {
+  document.getElementById('driver-welcome-name').textContent = currentUser.vorname + ' ' + currentUser.nachname;
+  document.getElementById('driver-topbar-sub').textContent = 'Fahrer';
+  const now = new Date();
+  document.getElementById('driver-date').textContent = now.toLocaleDateString('de-DE', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  // Notifications
+  const myNotifs = DB.notifications.filter(n => (n.to === currentUser.id || n.to === 'all') && !n.read);
+  const badge = document.getElementById('notif-badge');
+  if (myNotifs.length > 0) { badge.style.display='flex'; badge.textContent = myNotifs.length; }
+  else { badge.style.display='none'; }
+  updateOfflinePending();
+}
+
+// ─── ABFAHRTSKONTROLLE ────────────────────────────────────────────
+function initAbfahrt() {
+  abfahrtAnswers = {};
+  abfahrtPhotos = {};
+  const container = document.getElementById('abfahrt-questions');
+  container.innerHTML = '';
+  QUESTIONS.forEach((q, i) => {
+    const div = document.createElement('div');
+    div.className = 'question-card';
+    div.id = `qcard-${i}`;
+    div.innerHTML = `
+      <div class="question-num">Frage ${i+1} von ${QUESTIONS.length}</div>
+      <div class="question-text">${q}</div>
+      <div class="answer-group">
+        <button class="answer-btn" onclick="setAnswer(${i},'ja',this)">✅ Ja / In Ordnung</button>
+        <button class="answer-btn" onclick="setAnswer(${i},'nein',this)">❌ Nein / Mängel</button>
+      </div>
+      <div class="mangel-area" id="mangel-${i}">
+        <div class="form-group mt-8"><label>Bemerkung</label><textarea id="remark-${i}" placeholder="Beschreiben Sie den Mangel..."></textarea></div>
+        <div class="photo-preview" id="photos-prev-${i}"></div>
+        <div class="flex gap-8 mt-8">
+          <div class="photo-add-btn" onclick="triggerPhotoUpload('photo-input-${i}')">📷</div>
+        </div>
+        <input type="file" id="photo-input-${i}" accept="image/*" capture="environment" multiple onchange="handleAbfahrtPhoto(event,${i})">
+      </div>
+    `;
+    container.appendChild(div);
+  });
+  initSigPad('sig-canvas-abfahrt');
+  updateAbfahrtProgress();
+}
+
+function setAnswer(idx, val, btn) {
+  abfahrtAnswers[idx] = val;
+  const card = document.getElementById(`qcard-${idx}`);
+  card.querySelectorAll('.answer-btn').forEach(b => b.className = 'answer-btn');
+  btn.className = `answer-btn selected-${val}`;
+  card.classList.remove('has-issue','ok');
+  if (val === 'nein') { card.classList.add('has-issue'); document.getElementById(`mangel-${idx}`).classList.add('show'); }
+  else { card.classList.add('ok'); document.getElementById(`mangel-${idx}`).classList.remove('show'); }
+  updateAbfahrtProgress();
+}
+
+function updateAbfahrtProgress() {
+  const pct = (Object.keys(abfahrtAnswers).length / QUESTIONS.length) * 100;
+  document.getElementById('abfahrt-progress').style.width = pct + '%';
+}
+
+function handleAbfahrtPhoto(event, idx) {
+  if (!abfahrtPhotos[idx]) abfahrtPhotos[idx] = [];
+  const files = Array.from(event.target.files);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      abfahrtPhotos[idx].push(e.target.result);
+      renderAbfahrtPhotos(idx);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderAbfahrtPhotos(idx) {
+  const prev = document.getElementById(`photos-prev-${idx}`);
+  prev.innerHTML = '';
+  (abfahrtPhotos[idx] || []).forEach((src, i) => {
+    const img = document.createElement('img');
+    img.className = 'photo-thumb'; img.src = src;
+    img.onclick = () => { abfahrtPhotos[idx].splice(i,1); renderAbfahrtPhotos(idx); };
+    prev.appendChild(img);
+  });
+}
+
+function submitAbfahrt() {
+  for (let i = 0; i < QUESTIONS.length; i++) {
+    if (!abfahrtAnswers[i]) { showToast('⚠️ Bitte alle Fragen beantworten (Frage ' + (i+1) + ')', 'error'); return; }
+  }
+  const sigData = getSigData('sig-canvas-abfahrt');
+  const answers = QUESTIONS.map((q, i) => ({
+    question: q, answer: abfahrtAnswers[i],
+    remark: document.getElementById(`remark-${i}`)?.value || '',
+    photos: abfahrtPhotos[i] || []
+  }));
+  const entry = {
+    id: 'c' + Date.now(),
+    driverId: currentUser.id,
+    driverName: currentUser.vorname + ' ' + currentUser.nachname,
+    timestamp: new Date().toISOString(),
+    answers, signature: sigData,
+    offline: !isOnline
+  };
+  if (isOnline) DB.checks.push(entry);
+  else saveOffline('check', entry);
+  generateAbfahrtPDF(entry);
+  document.getElementById('success-title').textContent = '✅ Abfahrtskontrolle gesendet!';
+  document.getElementById('success-icon').textContent = '✅';
+  document.getElementById('success-msg').textContent = isOnline
+    ? `Bericht wurde erstellt und an ${currentUser.email1 || 'die hinterlegte E-Mail'} vorbereitet. PDF kann heruntergeladen werden.`
+    : '📡 Offline gespeichert – wird automatisch synchronisiert.';
+  goTo('screen-success');
+}
+
+// ─── POD ─────────────────────────────────────────────────────────
+function initPOD() {
+  podPhotos = [];
+  document.getElementById('pod-photos').innerHTML = '';
+  document.getElementById('pod-remarks').value = '';
+  initSigPad('sig-canvas-pod');
+}
+
+function handlePodPhotos(event) {
+  Array.from(event.target.files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => { podPhotos.push(e.target.result); renderPodPhotos(); };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderPodPhotos() {
+  const prev = document.getElementById('pod-photos');
+  prev.innerHTML = '';
+  podPhotos.forEach((src, i) => {
+    const img = document.createElement('img');
+    img.className = 'photo-thumb'; img.src = src;
+    img.onclick = () => { podPhotos.splice(i,1); renderPodPhotos(); };
+    prev.appendChild(img);
+  });
+}
+
+function submitPOD() {
+  const sigData = getSigData('sig-canvas-pod');
+  const entry = {
+    id: 'p' + Date.now(),
+    driverId: currentUser.id,
+    driverName: currentUser.vorname + ' ' + currentUser.nachname,
+    timestamp: new Date().toISOString(),
+    photos: podPhotos,
+    remarks: document.getElementById('pod-remarks').value,
+    signature: sigData,
+    offline: !isOnline
+  };
+  if (isOnline) DB.pods.push(entry);
+  else saveOffline('pod', entry);
+  generatePODPDF(entry);
+  document.getElementById('success-title').textContent = '📄 POD hochgeladen!';
+  document.getElementById('success-icon').textContent = '📄';
+  document.getElementById('success-msg').textContent = isOnline
+    ? `Belege wurden zusammengeführt und an ${currentUser.email2 || 'die hinterlegte E-Mail'} vorbereitet.`
+    : '📡 Offline gespeichert – wird automatisch synchronisiert.';
+  goTo('screen-success');
+}
+
+// ─── SIGNATURE PAD ────────────────────────────────────────────────
+function initSigPad(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+  canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  ctx.strokeStyle = '#f5a623';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  let drawing = false, lastX = 0, lastY = 0;
+
+  function getPos(e) {
+    const r = canvas.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return { x: (src.clientX - r.left), y: (src.clientY - r.top) };
+  }
+  function start(e) { e.preventDefault(); drawing = true; const p = getPos(e); lastX = p.x; lastY = p.y; }
+  function move(e) {
+    e.preventDefault();
+    if (!drawing) return;
+    const p = getPos(e);
+    ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.stroke();
+    lastX = p.x; lastY = p.y;
+  }
+  function stop(e) { e.preventDefault(); drawing = false; }
+
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  canvas.addEventListener('mouseup', stop);
+  canvas.addEventListener('touchstart', start, { passive: false });
+  canvas.addEventListener('touchmove', move, { passive: false });
+  canvas.addEventListener('touchend', stop, { passive: false });
+}
+
+function clearSig(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function getSigData(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return '';
+  return canvas.toDataURL('image/png');
+}
+
+// ─── PDF GENERATION ──────────────────────────────────────────────
+function generateAbfahrtPDF(entry) {
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    let y = 15;
+    const pageW = 210, marginL = 15, marginR = 195, contentW = 180;
+
+    function addPage() {
+      doc.addPage();
+      y = 15;
+      drawHeader();
+    }
+
+    function drawHeader() {
+      // Orange top bar
+      doc.setFillColor(245, 166, 35);
+      doc.rect(0, 0, pageW, 10, 'F');
+      // White background
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, 10, pageW, 287, 'F');
+    }
+
+    function checkY(needed) { if (y + needed > 275) addPage(); }
+
+    drawHeader();
+    y = 18;
+
+    // Title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.setTextColor(30, 30, 30);
+    doc.text('Abfahrtskontrolle', marginL, y); y += 8;
+
+    // Meta info box
+    doc.setFillColor(245, 247, 250);
+    doc.setDrawColor(220, 220, 220);
+    doc.roundedRect(marginL, y, contentW, 18, 2, 2, 'FD');
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text('Fahrer:', marginL + 4, y + 6);
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 30);
+    doc.text(entry.driverName, marginL + 22, y + 6);
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80);
+    doc.text('Datum:', marginL + 4, y + 13);
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 30);
+    doc.text(new Date(entry.timestamp).toLocaleString('de-DE'), marginL + 22, y + 13);
+    y += 24;
+
+    // Questions
+    entry.answers.forEach((a, i) => {
+      const isOk = a.answer === 'ja';
+      const rowH = a.remark ? 16 : 10;
+      checkY(rowH + (a.photos && a.photos.length ? 50 : 0));
+
+      // Row background alternating
+      if (i % 2 === 0) {
+        doc.setFillColor(250, 251, 253);
+        doc.rect(marginL, y - 1, contentW, rowH + 2, 'F');
+      }
+
+      // Number
+      doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+      doc.setTextColor(180, 180, 180);
+      doc.text(String(i + 1) + '.', marginL + 1, y + 5);
+
+      // Question text
+      doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+      doc.setTextColor(30, 30, 30);
+      const qlines = doc.splitTextToSize(a.question, 130);
+      doc.text(qlines, marginL + 9, y + 5);
+
+      // Answer badge
+      const badgeX = 158;
+      const badgeW = 36;
+      if (isOk) {
+        doc.setFillColor(220, 248, 232);
+        doc.setDrawColor(46, 180, 100);
+      } else {
+        doc.setFillColor(253, 225, 225);
+        doc.setDrawColor(220, 60, 60);
+      }
+      doc.roundedRect(badgeX, y + 1, badgeW, 7, 1.5, 1.5, 'FD');
+      doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+      doc.setTextColor(isOk ? 30 : 180, isOk ? 130 : 30, isOk ? 70 : 30);
+      const label = isOk ? 'Ja / I.O.' : 'Nein / Mangel';
+      doc.text(label, badgeX + badgeW / 2, y + 6, { align: 'center' });
+
+      y += qlines.length > 1 ? qlines.length * 5 + 2 : 10;
+
+      // Remark
+      if (a.remark) {
+        checkY(8);
+        doc.setFontSize(8.5); doc.setFont('helvetica', 'italic');
+        doc.setTextColor(160, 80, 40);
+        const rlines = doc.splitTextToSize('Bemerkung: ' + a.remark, contentW - 14);
+        doc.text(rlines, marginL + 9, y);
+        y += rlines.length * 4.5 + 2;
+      }
+
+      // Separator line
+      doc.setDrawColor(230, 230, 230);
+      doc.line(marginL, y, marginR, y);
+      y += 3;
+    });
+
+    y += 4;
+
+    // Signature
+    checkY(40);
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+    doc.setTextColor(80, 80, 80);
+    doc.text('Unterschrift des Fahrers:', marginL, y); y += 4;
+    if (entry.signature) {
+      doc.setDrawColor(200, 200, 200);
+      doc.setFillColor(252, 252, 252);
+      doc.roundedRect(marginL, y, 85, 32, 2, 2, 'FD');
+      try { doc.addImage(entry.signature, 'PNG', marginL + 2, y + 2, 81, 28); } catch(e) {}
+      y += 36;
+    } else {
+      doc.setDrawColor(200, 200, 200);
+      doc.rect(marginL, y, 85, 18, 'D');
+      y += 22;
+    }
+
+    // Footer
+    doc.setFillColor(245, 166, 35);
+    doc.rect(0, 287, pageW, 10, 'F');
+    doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+    doc.setTextColor(255, 255, 255);
+    doc.text('FleetCheck Pro  |  Automatisch generierter Bericht  |  ' + new Date().toLocaleDateString('de-DE'), pageW / 2, 293, { align: 'center' });
+
+    lastPDFBlob = doc.output('blob');
+  } catch(e) { console.warn('PDF error', e); lastPDFBlob = null; }
+}
+
+function generatePODPDF(entry) {
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    let y = 15;
+    const pageW = 210, marginL = 15, marginR = 195, contentW = 180;
+
+    function drawPageBase() {
+      doc.setFillColor(59, 130, 246);
+      doc.rect(0, 0, pageW, 10, 'F');
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, 10, pageW, 287, 'F');
+    }
+    function checkY(needed) { if (y + needed > 275) { doc.addPage(); y = 15; drawPageBase(); } }
+
+    drawPageBase();
+    y = 18;
+
+    // Title
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
+    doc.setTextColor(30, 30, 30);
+    doc.text('POD – Liefernachweis', marginL, y); y += 8;
+
+    // Meta box
+    doc.setFillColor(245, 247, 250); doc.setDrawColor(220, 220, 220);
+    doc.roundedRect(marginL, y, contentW, entry.remarks ? 23 : 16, 2, 2, 'FD');
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80);
+    doc.text('Fahrer:', marginL + 4, y + 6);
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 30);
+    doc.text(entry.driverName, marginL + 22, y + 6);
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80);
+    doc.text('Datum:', marginL + 4, y + 12);
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 30);
+    doc.text(new Date(entry.timestamp).toLocaleString('de-DE'), marginL + 22, y + 12);
+    if (entry.remarks) {
+      doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80);
+      doc.text('Bemerkung:', marginL + 4, y + 19);
+      doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 30);
+      doc.text(entry.remarks, marginL + 30, y + 19);
+    }
+    y += entry.remarks ? 29 : 22;
+
+    // Photos
+    if (entry.photos.length > 0) {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(30, 30, 30);
+      doc.text('Belege (' + entry.photos.length + '):', marginL, y); y += 5;
+      entry.photos.forEach((photo, i) => {
+        checkY(68);
+        doc.setFillColor(245, 247, 250); doc.setDrawColor(220, 220, 220);
+        doc.roundedRect(marginL, y, contentW, 65, 2, 2, 'FD');
+        doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(150, 150, 150);
+        doc.text('Beleg ' + (i + 1), marginL + 3, y + 5);
+        try { doc.addImage(photo, 'JPEG', marginL + 3, y + 7, 90, 55); } catch(e) {
+          try { doc.addImage(photo, 'PNG', marginL + 3, y + 7, 90, 55); } catch(e2) {}
+        }
+        y += 68;
+      });
+    } else {
+      doc.setFontSize(10); doc.setTextColor(150, 150, 150);
+      doc.text('Keine Bilder hochgeladen.', marginL, y); y += 8;
+    }
+
+    // Signature
+    checkY(42);
+    y += 4;
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(80, 80, 80);
+    doc.text('Unterschrift des Fahrers:', marginL, y); y += 4;
+    doc.setDrawColor(200, 200, 200); doc.setFillColor(252, 252, 252);
+    doc.roundedRect(marginL, y, 85, 32, 2, 2, 'FD');
+    if (entry.signature) {
+      try { doc.addImage(entry.signature, 'PNG', marginL + 2, y + 2, 81, 28); } catch(e) {}
+    }
+
+    // Footer
+    doc.setFillColor(59, 130, 246);
+    doc.rect(0, 287, pageW, 10, 'F');
+    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(255, 255, 255);
+    doc.text('FleetCheck Pro  |  POD Bericht  |  ' + new Date().toLocaleDateString('de-DE'), pageW / 2, 293, { align: 'center' });
+
+    lastPDFBlob = doc.output('blob');
+  } catch(e) { console.warn('PDF error', e); lastPDFBlob = null; }
+}
+
+function downloadLastPDF() {
+  if (!lastPDFBlob) { showToast('⚠️ PDF nicht verfügbar', 'error'); return; }
+  const url = URL.createObjectURL(lastPDFBlob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'FleetCheck_Bericht_' + Date.now() + '.pdf';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// ─── ADMIN ────────────────────────────────────────────────────────
+function refreshAdmin() {
+  const active = DB.drivers.filter(d => d.status === 'active').length;
+  const today = new Date().toDateString();
+  const checksToday = DB.checks.filter(c => new Date(c.timestamp).toDateString() === today).length;
+  const maengel = DB.checks.reduce((sum, c) => sum + c.answers.filter(a => a.answer === 'nein').length, 0);
+  document.getElementById('stat-fahrer').textContent = active;
+  document.getElementById('stat-checks').textContent = checksToday;
+  document.getElementById('stat-pods').textContent = DB.pods.length;
+  document.getElementById('stat-maengel').textContent = maengel;
+  renderFahrerList(DB.drivers);
+  populateFilterDropdowns();
+  renderKontrollen();
+  renderPODs();
+  renderSentNotifs();
+}
+
+function adminTab(name) {
+  ['fahrer','kontrollen','pods','nachrichten'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('hidden', t !== name);
+  });
+  document.querySelectorAll('#admin-tabs .tab').forEach((tab, i) => {
+    tab.classList.toggle('active', ['fahrer','kontrollen','pods','nachrichten'][i] === name);
+  });
+  const fab = document.getElementById('fab-add');
+  fab.style.display = name === 'fahrer' ? 'flex' : 'none';
+}
+
+function renderFahrerList(drivers) {
+  const list = document.getElementById('fahrer-list');
+  list.innerHTML = '';
+  if (drivers.length === 0) { list.innerHTML = '<p class="text-muted text-center" style="padding:20px">Keine Fahrer gefunden</p>'; return; }
+  const card = document.createElement('div');
+  card.className = 'list-card';
+  drivers.forEach(d => {
+    const item = document.createElement('div');
+    item.className = 'list-item';
+    item.innerHTML = `
+      <div class="list-avatar">${d.vorname[0]}${d.nachname[0]}</div>
+      <div class="list-info">
+        <div class="list-name">${d.vorname} ${d.nachname}</div>
+        <div class="list-meta">${d.username} · ${d.email}</div>
+      </div>
+      <div class="status-dot ${d.status}"></div>
+    `;
+    item.onclick = () => openEditDriver(d);
+    card.appendChild(item);
+  });
+  list.appendChild(card);
+}
+
+function filterFahrer(q) {
+  const filtered = DB.drivers.filter(d =>
+    (d.vorname + ' ' + d.nachname + ' ' + d.username).toLowerCase().includes(q.toLowerCase())
+  );
+  renderFahrerList(filtered);
+}
+
+function populateFilterDropdowns() {
+  ['filter-check-fahrer','filter-pod-fahrer','notif-recipient'].forEach(id => {
+    const sel = document.getElementById(id);
+    const current = sel.value;
+    while (sel.options.length > 1) sel.remove(1);
+    DB.drivers.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.id; opt.textContent = d.vorname + ' ' + d.nachname;
+      sel.appendChild(opt);
+    });
+    sel.value = current;
+  });
+}
+
+function openAddDriver() {
+  document.getElementById('modal-fahrer-title').textContent = 'Fahrer anlegen';
+  document.getElementById('modal-fahrer-id').value = '';
+  ['f-vorname','f-nachname','f-email','f-user','f-pass','f-email1','f-email2'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-status').value = 'active';
+  document.getElementById('delete-driver-btn').classList.add('hidden');
+  openModal('modal-fahrer');
+}
+
+function openEditDriver(d) {
+  document.getElementById('modal-fahrer-title').textContent = 'Fahrer bearbeiten';
+  document.getElementById('modal-fahrer-id').value = d.id;
+  document.getElementById('f-vorname').value = d.vorname;
+  document.getElementById('f-nachname').value = d.nachname;
+  document.getElementById('f-email').value = d.email;
+  document.getElementById('f-user').value = d.username;
+  document.getElementById('f-pass').value = d.password;
+  document.getElementById('f-email1').value = d.email1 || '';
+  document.getElementById('f-email2').value = d.email2 || '';
+  document.getElementById('f-status').value = d.status;
+  document.getElementById('delete-driver-btn').classList.remove('hidden');
+  openModal('modal-fahrer');
+}
+
+function saveDriver() {
+  const id = document.getElementById('modal-fahrer-id').value;
+  const data = {
+    vorname: document.getElementById('f-vorname').value.trim(),
+    nachname: document.getElementById('f-nachname').value.trim(),
+    email: document.getElementById('f-email').value.trim(),
+    username: document.getElementById('f-user').value.trim(),
+    password: document.getElementById('f-pass').value,
+    email1: document.getElementById('f-email1').value.trim(),
+    email2: document.getElementById('f-email2').value.trim(),
+    status: document.getElementById('f-status').value
+  };
+  if (!data.vorname || !data.nachname || !data.username || !data.password) {
+    showToast('⚠️ Pflichtfelder ausfüllen', 'error'); return;
+  }
+  if (id) {
+    const idx = DB.drivers.findIndex(d => d.id === id);
+    DB.drivers[idx] = { ...DB.drivers[idx], ...data };
+    showToast('✅ Fahrer gespeichert', 'success');
+  } else {
+    DB.drivers.push({ id: 'd' + Date.now(), ...data });
+    showToast('✅ Fahrer angelegt', 'success');
+  }
+  closeModal('modal-fahrer');
+  refreshAdmin();
+}
+
+function deleteDriver() {
+  const id = document.getElementById('modal-fahrer-id').value;
+  if (!id) return;
+  if (!confirm('Fahrer wirklich löschen?')) return;
+  const idx = DB.drivers.findIndex(d => d.id === id);
+  DB.drivers.splice(idx, 1);
+  showToast('🗑 Fahrer gelöscht', 'success');
+  closeModal('modal-fahrer');
+  refreshAdmin();
+}
+
+function renderKontrollen() {
+  const list = document.getElementById('kontrollen-list');
+  list.innerHTML = '';
+  const fDriver = document.getElementById('filter-check-fahrer').value;
+  const fDate = document.getElementById('filter-check-date').value;
+  let checks = [...DB.checks].reverse();
+  if (fDriver) checks = checks.filter(c => c.driverId === fDriver);
+  if (fDate) checks = checks.filter(c => c.timestamp.startsWith(fDate));
+  if (checks.length === 0) { list.innerHTML = '<p class="text-muted text-center" style="padding:20px">Keine Einträge</p>'; return; }
+  checks.forEach(c => {
+    const maengel = c.answers.filter(a => a.answer === 'nein').length;
+    const card = document.createElement('div');
+    card.className = 'report-card';
+    card.style.cursor = 'pointer';
+    card.innerHTML = `
+      <div class="report-top">
+        <div class="report-driver">${c.driverName}</div>
+        <div class="report-date">${new Date(c.timestamp).toLocaleString('de-DE')}</div>
+      </div>
+      <div class="report-status">
+        <div class="chip ok">✅ ${c.answers.filter(a=>a.answer!=='nein').length} OK</div>
+        ${maengel > 0 ? `<div class="chip warn">⚠️ ${maengel} Mängel</div>` : ''}
+        ${c.offline ? '<div class="sync-badge">Offline</div>' : ''}
+      </div>
+    `;
+    card.onclick = () => openKontrolleDetail(c);
+    list.appendChild(card);
+  });
+}
+
+function openKontrolleDetail(c) {
+  const content = document.getElementById('modal-kontrolle-content');
+  content.innerHTML = `
+    <p class="text-muted mb-8">Fahrer: <strong style="color:var(--text)">${c.driverName}</strong></p>
+    <p class="text-muted mb-8">Datum: <strong style="color:var(--text)">${new Date(c.timestamp).toLocaleString('de-DE')}</strong></p>
+    <div class="divider"></div>
+    ${c.answers.map((a,i) => `
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;color:var(--muted)">${i+1}. ${a.question}</div>
+        <div style="font-weight:600;color:${a.answer==='nein'?'var(--red)':a.answer==='io'?'var(--blue)':'var(--green)'}">
+          ${a.answer === 'ja' ? '✅ Ja / In Ordnung' : '❌ Nein / Mängel'}
+        </div>
+        ${a.remark ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">→ ${a.remark}</div>` : ''}
+        ${a.photos && a.photos.length ? a.photos.map(p => `<img src="${p}" style="width:60px;height:60px;border-radius:8px;margin-top:4px;object-fit:cover">`).join('') : ''}
+      </div>
+    `).join('')}
+    ${c.signature ? `<div class="divider"></div><p style="font-size:12px;color:var(--muted)">Unterschrift:</p><img src="${c.signature}" style="max-width:200px;border-radius:8px;margin-top:4px;border:1px solid var(--border)">` : ''}
+  `;
+  openModal('modal-kontrolle');
+}
+
+function renderPODs() {
+  const list = document.getElementById('pods-list');
+  list.innerHTML = '';
+  const fDriver = document.getElementById('filter-pod-fahrer').value;
+  let pods = [...DB.pods].reverse();
+  if (fDriver) pods = pods.filter(p => p.driverId === fDriver);
+  if (pods.length === 0) { list.innerHTML = '<p class="text-muted text-center" style="padding:20px">Keine PODs</p>'; return; }
+  pods.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'report-card';
+    card.style.cursor = 'pointer';
+    card.innerHTML = `
+      <div class="report-top">
+        <div class="report-driver">${p.driverName}</div>
+        <div class="report-date">${new Date(p.timestamp).toLocaleString('de-DE')}</div>
+      </div>
+      <div class="report-status">
+        <div class="chip ok">📷 ${p.photos.length} Bild(er)</div>
+        ${p.remarks ? `<div class="chip">💬 Bemerkung</div>` : ''}
+        ${p.offline ? '<div class="sync-badge">Offline</div>' : ''}
+      </div>
+    `;
+    card.onclick = () => openPODDetail(p);
+    list.appendChild(card);
+  });
+}
+
+function openPODDetail(p) {
+  const content = document.getElementById('modal-pod-content');
+  content.innerHTML = `
+    <p class="text-muted mb-8">Fahrer: <strong style="color:var(--text)">${p.driverName}</strong></p>
+    <p class="text-muted mb-8">Datum: <strong style="color:var(--text)">${new Date(p.timestamp).toLocaleString('de-DE')}</strong></p>
+    ${p.remarks ? `<p class="text-muted mb-8">Bemerkung: <strong style="color:var(--text)">${p.remarks}</strong></p>` : ''}
+    <div class="divider"></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      ${p.photos.length ? p.photos.map(ph => `<img src="${ph}" style="width:80px;height:80px;border-radius:10px;object-fit:cover;border:1px solid var(--border)">`).join('') : '<p class="text-muted">Keine Bilder</p>'}
+    </div>
+    ${p.signature ? `<div class="divider"></div><p style="font-size:12px;color:var(--muted)">Unterschrift:</p><img src="${p.signature}" style="max-width:200px;border-radius:8px;margin-top:4px;border:1px solid var(--border)">` : ''}
+  `;
+  openModal('modal-pod');
+}
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────────
+function sendNotification() {
+  const to = document.getElementById('notif-recipient').value;
+  const msg = document.getElementById('notif-message').value.trim();
+  if (!msg) { showToast('⚠️ Bitte Nachricht eingeben', 'error'); return; }
+  DB.notifications.push({ id: 'n' + Date.now(), from: 'Admin', to, message: msg, timestamp: new Date().toISOString(), read: false });
+  document.getElementById('notif-message').value = '';
+  showToast('📨 Nachricht gesendet', 'success');
+  renderSentNotifs();
+}
+
+function renderSentNotifs() {
+  const list = document.getElementById('sent-notifs-list');
+  list.innerHTML = '';
+  [...DB.notifications].reverse().forEach(n => {
+    const toLabel = n.to === 'all' ? 'Alle Fahrer' : (DB.drivers.find(d => d.id === n.to)?.vorname + ' ' + DB.drivers.find(d => d.id === n.to)?.nachname);
+    const card = document.createElement('div');
+    card.className = 'report-card';
+    card.innerHTML = `
+      <div class="report-top">
+        <div class="report-driver">→ ${toLabel}</div>
+        <div class="report-date">${new Date(n.timestamp).toLocaleString('de-DE')}</div>
+      </div>
+      <div style="font-size:14px;color:var(--text);line-height:1.5;margin-top:6px">${n.message}</div>
+      <div class="mt-8"><span class="chip ${n.read ? 'ok' : 'warn'}">${n.read ? '✅ Gelesen' : '⏳ Ungelesen'}</span></div>
+    `;
+    list.appendChild(card);
+  });
+  if (DB.notifications.length === 0) list.innerHTML = '<p class="text-muted text-center" style="padding:20px">Keine Nachrichten</p>';
+}
+
+function renderDriverNotifs() {
+  const list = document.getElementById('driver-notifs-list');
+  list.innerHTML = '';
+  const myNotifs = DB.notifications.filter(n => n.to === currentUser.id || n.to === 'all');
+  if (myNotifs.length === 0) { list.innerHTML = '<p class="text-muted text-center" style="padding:40px 20px">Keine Nachrichten</p>'; return; }
+  [...myNotifs].reverse().forEach(n => {
+    const card = document.createElement('div');
+    card.className = 'notif-card' + (n.read ? ' read' : '');
+    card.innerHTML = `
+      <div class="notif-header">
+        <span class="notif-from">Von: ${n.from}</span>
+        <span class="notif-time">${new Date(n.timestamp).toLocaleString('de-DE')}</span>
+      </div>
+      <div class="notif-msg">${n.message}</div>
+      ${!n.read ? `<button class="btn btn-green btn-sm" onclick="markRead('${n.id}',this)">✅ Als gelesen markieren</button>` : '<span style="font-size:12px;color:var(--muted)">✅ Gelesen</span>'}
+    `;
+    list.appendChild(card);
+  });
+}
+
+function markRead(id, btn) {
+  const n = DB.notifications.find(n => n.id === id);
+  if (n) n.read = true;
+  btn.parentElement.classList.add('read');
+  btn.parentElement.querySelector('.notif-msg').style.opacity = '0.6';
+  btn.replaceWith(document.createTextNode('✅ Gelesen'));
+  // Update badge
+  const myUnread = DB.notifications.filter(n => (n.to === currentUser.id || n.to === 'all') && !n.read);
+  const badge = document.getElementById('notif-badge');
+  if (myUnread.length > 0) { badge.style.display='flex'; badge.textContent = myUnread.length; }
+  else { badge.style.display='none'; }
+}
+
+function showDriverNotifs() { goTo('screen-driver-notifs'); }
+
+// ─── MODAL HELPERS ────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) closeModal(m.id); });
+});
+
+// ─── PHOTO TRIGGER ────────────────────────────────────────────────
+function triggerPhotoUpload(inputId) { document.getElementById(inputId).click(); }
+
+// ─── TOAST ────────────────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ─── INIT ────────────────────────────────────────────────────────
+document.addEventListener('keypress', e => {
+  if (e.key === 'Enter' && document.getElementById('screen-login').classList.contains('active')) doLogin();
+});
+</script>
+</body>
+</html>
