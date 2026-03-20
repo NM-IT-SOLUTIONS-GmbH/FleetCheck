@@ -848,9 +848,9 @@ const DB = {
     { username: 'admin', password: 'NM-Admin2025!', name: 'Administrator' }
   ],
   drivers: [
-    { id: 'd1', vorname: 'Niraj', nachname: 'Malhotra', email: 'mueller@fleet.de', username: 'Jimmy', password: 'pass123', email1: 'info@nm-it-solutions.de', email2: 'accounting@nm-it-solutions.de', status: 'active' },
-    { id: 'd2', vorname: 'Naween', nachname: 'Malhotra', email: 'schmidt@fleet.de', username: 'Nino', password: 'pass123', email1: 'info@nm-it-solutions.de'', email2: 'accounting@nm-it-solutions.de', status: 'active' },
-    { id: 'd3', vorname: 'Sachin', nachname: 'Khatri', email: 'weber@fleet.de', username: 'Sachin', password: 'pass123', email1: 'info@nm-it-solutions.de'', email2: 'accounting@nm-it-solutions.de', status: 'inactive' },
+    { id: 'd1', vorname: 'Thomas', nachname: 'Müller', email: 'mueller@fleet.de', username: 'fahrer1', password: 'pass123', email1: 'kontrolle@fleet.de', email2: 'pod@fleet.de', status: 'active' },
+    { id: 'd2', vorname: 'Anna', nachname: 'Schmidt', email: 'schmidt@fleet.de', username: 'fahrer2', password: 'pass123', email1: 'kontrolle@fleet.de', email2: 'pod@fleet.de', status: 'active' },
+    { id: 'd3', vorname: 'Klaus', nachname: 'Weber', email: 'weber@fleet.de', username: 'fahrer3', password: 'pass123', email1: 'info@fleet.de', email2: 'pod@fleet.de', status: 'inactive' },
   ],
   checks: [],
   pods: [],
@@ -1119,9 +1119,7 @@ function sendDriverMessage() {
   sendEmailWithPDF(
     emailSettings.from || 'ticket@nm-it-solutions.de',
     'Nachricht von Fahrer: ' + msg.from,
-    msg.from + ' schreibt:
-
-' + text,
+    msg.from + ' schreibt:\n\n' + text,
     'msg'
   );
   document.getElementById('driver-msg-text').value = '';
