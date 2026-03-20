@@ -6,6 +6,8 @@
 <title>FleetCheck Pro</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
 
@@ -802,8 +804,8 @@
     <div class="form-group"><label>E-Mail</label><input type="email" id="f-email" placeholder="max@firma.de"></div>
     <div class="form-group"><label>Benutzername</label><input type="text" id="f-user" placeholder="max.mustermann"></div>
     <div class="form-group"><label>Passwort</label><input type="password" id="f-pass" placeholder="••••••••"></div>
-    <div class="form-group"><label>E-Mail Abfahrtskontrolle</label><input type="email" id="f-email1" placeholder="kontrolle@firma.de"></div>
-    <div class="form-group"><label>E-Mail POD</label><input type="email" id="f-email2" placeholder="pod@firma.de"></div>
+    <div class="form-group"><label>E-Mail Abfahrtskontrolle</label><input type="email" id="f-email1" placeholder="info@nm-it-solutions.de"></div>
+    <div class="form-group"><label>E-Mail POD</label><input type="email" id="f-email2" placeholder="accounting@nm-it-solutions.de"></div>
     <div class="form-group" id="status-group">
       <label>Status</label>
       <select id="f-status">
@@ -842,15 +844,82 @@
 
 <!-- ═══════════════════════════════════════ SCRIPT ═══════════════════════════════════════ -->
 <script>
+// ─── FIREBASE CONFIG ──────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyAMHN6xL8oZp0hx1MTGxknX3FaCHmC9MnM",
+  authDomain: "fleetchek-nm-it.firebaseapp.com",
+  databaseURL: "https://fleetchek-nm-it-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "fleetchek-nm-it",
+  storageBucket: "fleetchek-nm-it.firebasestorage.app",
+  messagingSenderId: "1077205954230",
+  appId: "1:1077205954230:web:950f1f62c5ea563b2dc017"
+};
+
+let firebaseApp = null;
+let firebaseDB = null;
+
+function initFirebase() {
+  try {
+    if (!firebaseConfig.databaseURL || firebaseConfig.databaseURL === 'FIREBASE_DB_URL') {
+      console.warn('Firebase databaseURL not set yet');
+      return false;
+    }
+    if (!firebaseApp) {
+      firebaseApp = firebase.initializeApp(firebaseConfig);
+      firebaseDB = firebase.database();
+      console.log('Firebase initialized!');
+      setupFirebaseListeners();
+    }
+    return true;
+  } catch(e) { console.error('Firebase init error:', e); return false; }
+}
+
+function setupFirebaseListeners() {
+  if (!firebaseDB || !currentUser) return;
+  // Listen for notifications for this user
+  const notifsRef = firebaseDB.ref('notifications');
+  notifsRef.on('value', snap => {
+    const data = snap.val() || {};
+    const all = Object.values(data);
+    // Merge into DB
+    all.forEach(n => {
+      const existing = DB.notifications.find(e => e.id === n.id);
+      if (!existing) DB.notifications.push(n);
+      else { existing.read = n.read; existing.message = n.message; }
+    });
+    DB.notifications = all; // Replace with Firebase data
+    refreshNotifBadge();
+    if (document.getElementById('screen-driver-messages').classList.contains('active')) renderDriverNotifs2();
+    if (document.getElementById('tab-nachrichten') && !document.getElementById('tab-nachrichten').classList.contains('hidden')) renderSentNotifs();
+  });
+  // Listen for driver messages
+  const msgsRef = firebaseDB.ref('driverMessages');
+  msgsRef.on('value', snap => {
+    const data = snap.val() || {};
+    DB.driverMessages = Object.values(data);
+    if (document.getElementById('tab-fahrermsgs') && !document.getElementById('tab-fahrermsgs').classList.contains('hidden')) renderFahrerMsgs();
+    if (document.getElementById('msg-tab-senden') && !document.getElementById('msg-tab-senden').classList.contains('hidden')) renderDriverSentMsgs();
+  });
+}
+
+function refreshNotifBadge() {
+  if (!currentUser) return;
+  const myUnread = DB.notifications.filter(n => (n.to === currentUser.id || n.to === 'all') && !n.read);
+  const badge = document.getElementById('notif-badge');
+  if (badge) { badge.style.display = myUnread.length > 0 ? 'flex' : 'none'; badge.textContent = myUnread.length; }
+  const dot = document.getElementById('msg-notif-dot');
+  if (dot) dot.classList.toggle('show', myUnread.length > 0);
+}
+
 // ─── DATA STORE ───────────────────────────────────────────────────
 const DB = {
   admins: [
     { username: 'admin', password: 'NM-Admin2025!', name: 'Administrator' }
   ],
   drivers: [
-    { id: 'd1', vorname: 'Thomas', nachname: 'Müller', email: 'mueller@fleet.de', username: 'fahrer1', password: 'pass123', email1: 'kontrolle@fleet.de', email2: 'pod@fleet.de', status: 'active' },
-    { id: 'd2', vorname: 'Anna', nachname: 'Schmidt', email: 'schmidt@fleet.de', username: 'fahrer2', password: 'pass123', email1: 'kontrolle@fleet.de', email2: 'pod@fleet.de', status: 'active' },
-    { id: 'd3', vorname: 'Klaus', nachname: 'Weber', email: 'weber@fleet.de', username: 'fahrer3', password: 'pass123', email1: 'info@fleet.de', email2: 'pod@fleet.de', status: 'inactive' },
+    { id: 'd1', vorname: 'Thomas', nachname: 'Müller', email: 'mueller@fleet.de', username: 'fahrer1', password: 'pass123', email1: 'info@nm-it-solutions.de', email2: 'accounting@nm-it-solutions.de', status: 'active' },
+    { id: 'd2', vorname: 'Anna', nachname: 'Schmidt', email: 'schmidt@fleet.de', username: 'fahrer2', password: 'pass123', email1: 'info@nm-it-solutions.de', email2: 'accounting@nm-it-solutions.de', status: 'active' },
+    { id: 'd3', vorname: 'Klaus', nachname: 'Weber', email: 'weber@fleet.de', username: 'fahrer3', password: 'pass123', email1: 'info@nm-it-solutions.de', email2: 'accounting@nm-it-solutions.de', status: 'inactive' },
   ],
   checks: [],
   pods: [],
@@ -963,6 +1032,47 @@ function goBack() {
 }
 
 // ─── EMAIL (Office 365 via EmailJS) ──────────────────────────────
+// ─── NOTIFICATION STORAGE (localStorage für geräteübergreifende Nachrichten) ───
+function saveNotificationsToStorage() {
+  try { localStorage.setItem('fc_notifications', JSON.stringify(DB.notifications)); } catch(e) {}
+}
+
+function loadNotificationsFromStorage() {
+  try {
+    const stored = localStorage.getItem('fc_notifications');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Merge: add stored notifications not already in DB
+      parsed.forEach(n => {
+        if (!DB.notifications.find(existing => existing.id === n.id)) {
+          DB.notifications.push(n);
+        } else {
+          // Update read status
+          const existing = DB.notifications.find(e => e.id === n.id);
+          if (existing) existing.read = n.read;
+        }
+      });
+    }
+  } catch(e) {}
+}
+
+function saveDriveMessageToStorage(msg) {
+  try {
+    const stored = JSON.parse(localStorage.getItem('fc_drivermsgs') || '[]');
+    stored.push(msg);
+    localStorage.setItem('fc_drivermsgs', JSON.stringify(stored));
+    // Also merge into DB
+    DB.driverMessages = stored;
+  } catch(e) {}
+}
+
+function loadDriverMessagesFromStorage() {
+  try {
+    const stored = localStorage.getItem('fc_drivermsgs');
+    if (stored) DB.driverMessages = JSON.parse(stored);
+  } catch(e) {}
+}
+
 let emailSettings = JSON.parse(localStorage.getItem('o365settings') || JSON.stringify({
   from: 'ticket@nm-it-solutions.de',
   serviceId: 'service_ozle88h',
@@ -1114,7 +1224,12 @@ function sendDriverMessage() {
     read: false
   };
   
-  DB.driverMessages.push(msg);
+  if (firebaseDB) {
+    firebaseDB.ref('driverMessages/' + msg.id).set(msg);
+  } else {
+    DB.driverMessages.push(msg);
+    saveDriveMessageToStorage(msg);
+  }
   // Send email to admin
   sendEmailWithPDF(
     emailSettings.from || 'ticket@nm-it-solutions.de',
@@ -1175,9 +1290,9 @@ function doLogin() {
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value.trim();
   const admin = DB.admins.find(a => a.username === u && a.password === p);
-  if (admin) { currentUser = admin; currentRole = 'admin'; goTo('screen-admin-home'); loadO365Settings(); initEmailJS(); return; }
+  if (admin) { currentUser = admin; currentRole = 'admin'; goTo('screen-admin-home'); loadO365Settings(); initEmailJS(); setTimeout(initFirebase, 500); return; }
   const driver = DB.drivers.find(d => d.username === u && d.password === p && d.status === 'active');
-  if (driver) { currentUser = driver; currentRole = 'driver'; goTo('screen-driver-home'); return; }
+  if (driver) { currentUser = driver; currentRole = 'driver'; goTo('screen-driver-home'); setTimeout(initFirebase, 500); return; }
   showToast('❌ Benutzername oder Kennwort falsch', 'error');
 }
 
@@ -1468,13 +1583,13 @@ function generateAbfahrtPDF(entry) {
     // Questions
     entry.answers.forEach((a, i) => {
       const isOk = a.answer === 'ja';
-      const rowH = a.remark ? 16 : 10;
-      checkY(rowH + (a.photos && a.photos.length ? 50 : 0));
+      const hasPhotos = !isOk && a.photos && a.photos.length > 0;
+      checkY(16);
 
       // Row background alternating
       if (i % 2 === 0) {
         doc.setFillColor(250, 251, 253);
-        doc.rect(marginL, y - 1, contentW, rowH + 2, 'F');
+        doc.rect(marginL, y - 1, contentW, 12, 'F');
       }
 
       // Number
@@ -1485,12 +1600,12 @@ function generateAbfahrtPDF(entry) {
       // Question text
       doc.setFontSize(10); doc.setFont('helvetica', 'normal');
       doc.setTextColor(30, 30, 30);
-      const qlines = doc.splitTextToSize(a.question, 130);
+      const qlines = doc.splitTextToSize(a.question, 128);
       doc.text(qlines, marginL + 9, y + 5);
 
       // Answer badge
-      const badgeX = 158;
-      const badgeW = 36;
+      const badgeX = 157;
+      const badgeW = 38;
       if (isOk) {
         doc.setFillColor(220, 248, 232);
         doc.setDrawColor(46, 180, 100);
@@ -1500,13 +1615,13 @@ function generateAbfahrtPDF(entry) {
       }
       doc.roundedRect(badgeX, y + 1, badgeW, 7, 1.5, 1.5, 'FD');
       doc.setFontSize(8); doc.setFont('helvetica', 'bold');
-      doc.setTextColor(isOk ? 30 : 180, isOk ? 130 : 30, isOk ? 70 : 30);
+      doc.setTextColor(isOk ? 20 : 160, isOk ? 120 : 20, isOk ? 60 : 20);
       const label = isOk ? 'Ja / I.O.' : 'Nein / Mangel';
       doc.text(label, badgeX + badgeW / 2, y + 6, { align: 'center' });
 
       y += qlines.length > 1 ? qlines.length * 5 + 2 : 10;
 
-      // Remark
+      // Remark directly under question
       if (a.remark) {
         checkY(8);
         doc.setFontSize(8.5); doc.setFont('helvetica', 'italic');
@@ -1516,6 +1631,26 @@ function generateAbfahrtPDF(entry) {
         y += rlines.length * 4.5 + 2;
       }
 
+      // Photos directly under question (only for Mängel)
+      if (hasPhotos) {
+        checkY(10);
+        doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+        doc.setTextColor(160, 80, 40);
+        doc.text('Foto(s) zum Mangel:', marginL + 9, y);
+        y += 5;
+        let photoX = marginL + 9;
+        a.photos.forEach((photo, pi) => {
+          if (photoX + 55 > marginR) { photoX = marginL + 9; y += 58; }
+          checkY(58);
+          doc.setFillColor(245,247,250); doc.setDrawColor(200,200,200);
+          doc.roundedRect(photoX, y, 52, 50, 2, 2, 'FD');
+          try { doc.addImage(photo, 'JPEG', photoX+1, y+1, 50, 48); }
+          catch(e) { try { doc.addImage(photo, 'PNG', photoX+1, y+1, 50, 48); } catch(e2){} }
+          photoX += 56;
+        });
+        y += 54;
+      }
+
       // Separator line
       doc.setDrawColor(230, 230, 230);
       doc.line(marginL, y, marginR, y);
@@ -1523,34 +1658,6 @@ function generateAbfahrtPDF(entry) {
     });
 
     y += 4;
-
-    // Mängel-Fotos
-    let hasPhotos = entry.answers.some(a => a.photos && a.photos.length > 0);
-    if (hasPhotos) {
-      checkY(20);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
-      doc.setTextColor(30, 30, 30);
-      doc.text('Fotos zu Mängeln:', marginL, y); y += 6;
-      doc.setDrawColor(230,230,230); doc.line(marginL, y, marginR, y); y += 4;
-      entry.answers.forEach((a, i) => {
-        if (a.photos && a.photos.length > 0) {
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(180,80,40);
-          doc.text('Frage ' + (i+1) + ': ' + a.question, marginL, y); y += 5;
-          a.photos.forEach((photo, pi) => {
-            checkY(68);
-            try {
-              doc.setFillColor(245,247,250); doc.setDrawColor(220,220,220);
-              doc.roundedRect(marginL, y, 85, 60, 2, 2, 'FD');
-              doc.addImage(photo, 'JPEG', marginL+2, y+2, 81, 56);
-            } catch(e) {
-              try { doc.addImage(photo, 'PNG', marginL+2, y+2, 81, 56); } catch(e2) {}
-            }
-            y += 64;
-          });
-        }
-      });
-      y += 4;
-    }
 
     // Signature
     checkY(40);
@@ -1906,7 +2013,13 @@ function sendNotification() {
   const to = document.getElementById('notif-recipient').value;
   const msg = document.getElementById('notif-message').value.trim();
   if (!msg) { showToast('⚠️ Bitte Nachricht eingeben', 'error'); return; }
-  DB.notifications.push({ id: 'n' + Date.now(), from: 'Admin', to, message: msg, timestamp: new Date().toISOString(), read: false });
+  const newNotif = { id: 'n' + Date.now(), from: 'Admin', to, message: msg, timestamp: new Date().toISOString(), read: false };
+  if (firebaseDB) {
+    firebaseDB.ref('notifications/' + newNotif.id).set(newNotif);
+  } else {
+    DB.notifications.push(newNotif);
+    saveNotificationsToStorage();
+  }
   document.getElementById('notif-message').value = '';
   showToast('📨 Nachricht gesendet', 'success');
   renderSentNotifs();
@@ -1954,7 +2067,11 @@ function renderDriverNotifs() {
 
 function markRead(id, btn) {
   const n = DB.notifications.find(n => n.id === id);
-  if (n) n.read = true;
+  if (n) {
+    n.read = true;
+    if (firebaseDB) firebaseDB.ref('notifications/' + id + '/read').set(true);
+    else saveNotificationsToStorage();
+  }
   btn.parentElement.classList.add('read');
   btn.parentElement.querySelector('.notif-msg').style.opacity = '0.6';
   btn.replaceWith(document.createTextNode('✅ Gelesen'));
