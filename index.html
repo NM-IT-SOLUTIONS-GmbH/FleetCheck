@@ -892,6 +892,33 @@ function setupFirebaseListeners() {
     if (document.getElementById('screen-driver-messages').classList.contains('active')) renderDriverNotifs2();
     if (document.getElementById('tab-nachrichten') && !document.getElementById('tab-nachrichten').classList.contains('hidden')) renderSentNotifs();
   });
+  // Listen for checks
+  firebaseDB.ref('checks').on('value', snap => {
+    const data = snap.val() || {};
+    const fbChecks = Object.values(data);
+    fbChecks.forEach(c => {
+      if (!DB.checks.find(e => e.id === c.id)) DB.checks.push(c);
+    });
+    if (document.getElementById('tab-kontrollen') && !document.getElementById('tab-kontrollen').classList.contains('hidden')) renderKontrollen();
+    const statChecks = document.getElementById('stat-checks');
+    if (statChecks) {
+      const today = new Date().toDateString();
+      statChecks.textContent = DB.checks.filter(c => new Date(c.timestamp).toDateString() === today).length;
+    }
+  });
+
+  // Listen for pods
+  firebaseDB.ref('pods').on('value', snap => {
+    const data = snap.val() || {};
+    const fbPods = Object.values(data);
+    fbPods.forEach(p => {
+      if (!DB.pods.find(e => e.id === p.id)) DB.pods.push(p);
+    });
+    if (document.getElementById('tab-pods') && !document.getElementById('tab-pods').classList.contains('hidden')) renderPODs();
+    const statPods = document.getElementById('stat-pods');
+    if (statPods) statPods.textContent = DB.pods.length;
+  });
+
   // Listen for driver messages
   const msgsRef = firebaseDB.ref('driverMessages');
   msgsRef.on('value', snap => {
@@ -1411,16 +1438,25 @@ function submitAbfahrt() {
     answers, signature: sigData,
     offline: !isOnline
   };
-  if (isOnline) DB.checks.push(entry);
-  else saveOffline('check', entry);
+  if (isOnline && firebaseDB) {
+    const entryForDB = { ...entry, answers: entry.answers.map(a => ({...a, photos: a.photos ? a.photos.map((_,i) => 'photo_' + i) : [], photoCount: a.photos ? a.photos.length : 0})), signature: entry.signature ? 'sig_present' : '' };
+    firebaseDB.ref('checks/' + entry.id).set(entryForDB);
+    DB.checks.push(entry);
+  } else if (isOnline) {
+    DB.checks.push(entry);
+  } else {
+    saveOffline('check', entry);
+  }
   generateAbfahrtPDF(entry);
   document.getElementById('success-title').textContent = '✅ Abfahrtskontrolle gesendet!';
   document.getElementById('success-icon').textContent = '✅';
   if (isOnline) {
     const recipient = currentUser.email1 || currentUser.email;
-    sendEmailWithPDF(recipient, 'Abfahrtskontrolle – ' + entry.driverName, 
-      'Anbei die Abfahrtskontrolle vom ' + new Date(entry.timestamp).toLocaleString('de-DE') + ' von Fahrer ' + entry.driverName + '.', 'check');
-    document.getElementById('success-msg').textContent = `PDF wird an ${recipient} gesendet...`;
+    setTimeout(() => {
+      sendEmailWithPDF(recipient, 'Abfahrtskontrolle – ' + entry.driverName,
+        'Anbei die Abfahrtskontrolle vom ' + new Date(entry.timestamp).toLocaleString('de-DE') + ' von Fahrer ' + entry.driverName + '.', 'check');
+    }, 800);
+    document.getElementById('success-msg').textContent = 'PDF wird an ' + recipient + ' gesendet...';
   } else {
     document.getElementById('success-msg').textContent = '📡 Offline gespeichert – wird automatisch synchronisiert.';
   }
@@ -1466,16 +1502,28 @@ function submitPOD() {
     signature: sigData,
     offline: !isOnline
   };
-  if (isOnline) DB.pods.push(entry);
-  else saveOffline('pod', entry);
+  // Save to Firebase or local
+  if (isOnline && firebaseDB) {
+    // Store without large photo data in Firebase (too large), keep locally
+    const entryForDB = { ...entry, photos: entry.photos.map((p,i) => 'photo_' + i), photoCount: entry.photos.length };
+    firebaseDB.ref('pods/' + entry.id).set(entryForDB);
+    DB.pods.push(entry); // keep full version with photos locally
+  } else if (isOnline) {
+    DB.pods.push(entry);
+  } else {
+    saveOffline('pod', entry);
+  }
   generatePODPDF(entry);
   document.getElementById('success-title').textContent = '📄 POD hochgeladen!';
   document.getElementById('success-icon').textContent = '📄';
   if (isOnline) {
     const recipient = currentUser.email2 || currentUser.email;
-    sendEmailWithPDF(recipient, 'POD Liefernachweis – ' + entry.driverName,
-      'Anbei der POD-Liefernachweis vom ' + new Date(entry.timestamp).toLocaleString('de-DE') + ' von Fahrer ' + entry.driverName + '.', 'pod');
-    document.getElementById('success-msg').textContent = `Belege werden an ${recipient} gesendet...`;
+    // Small delay to ensure PDF is generated before sending
+    setTimeout(() => {
+      sendEmailWithPDF(recipient, 'POD Liefernachweis – ' + entry.driverName,
+        'Anbei der POD-Liefernachweis vom ' + new Date(entry.timestamp).toLocaleString('de-DE') + ' von Fahrer ' + entry.driverName + '. Anzahl Belege: ' + entry.photos.length, 'pod');
+    }, 800);
+    document.getElementById('success-msg').textContent = 'Belege werden an ' + recipient + ' gesendet...';
   } else {
     document.getElementById('success-msg').textContent = '📡 Offline gespeichert – wird automatisch synchronisiert.';
   }
