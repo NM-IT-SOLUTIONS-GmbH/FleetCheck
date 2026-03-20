@@ -519,6 +519,12 @@
       <div class="bb-title">POD hochladen</div>
       <div class="bb-desc">Liefernachweise und Belege einscannen</div>
     </div>
+    <div class="big-btn" onclick="goTo('screen-driver-messages')" style="position:relative">
+      <div class="notif-dot" id="msg-notif-dot"></div>
+      <div class="bb-icon" style="background:rgba(46,204,113,0.15)">💬</div>
+      <div class="bb-title">Nachrichten</div>
+      <div class="bb-desc">Nachrichten empfangen und an Admin senden</div>
+    </div>
   </div>
 </div>
 
@@ -618,6 +624,46 @@
 </div>
 
 <!-- ═══════════════════════════════════════
+     SCREEN: FAHRER NACHRICHTEN
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-driver-messages">
+  <div class="topbar">
+    <button class="btn btn-secondary btn-sm btn-icon" onclick="goBack()">←</button>
+    <div style="flex:1;margin-left:12px"><div class="topbar-title">Nachrichten</div></div>
+  </div>
+  <div class="page-content">
+    <div class="tabs">
+      <button class="tab active" onclick="msgTab('empfangen')">📥 Empfangen</button>
+      <button class="tab" onclick="msgTab('senden')">📤 Senden</button>
+    </div>
+
+    <!-- EMPFANGEN -->
+    <div id="msg-tab-empfangen">
+      <div id="driver-notifs-list2"></div>
+    </div>
+
+    <!-- SENDEN -->
+    <div id="msg-tab-senden" class="hidden">
+      <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px">
+        <div class="form-group">
+          <label>Nachricht an Admin</label>
+          <textarea id="driver-msg-text" placeholder="z.B. Fahrzeugschaden auf A3, benötige Unterstützung..." style="min-height:120px"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Anhang (optional, z.B. Foto)</label>
+          <div class="photo-preview" id="driver-msg-photos"></div>
+          <div class="photo-add-btn mt-8" onclick="triggerPhotoUpload('driver-msg-file')">📷 Foto hinzufügen</div>
+          <input type="file" id="driver-msg-file" accept="image/*" capture="environment" multiple onchange="handleDriverMsgPhoto(event)">
+        </div>
+        <button class="btn btn-primary" onclick="sendDriverMessage()">📤 Nachricht senden</button>
+      </div>
+      <div class="section-title mb-8">Gesendete Nachrichten</div>
+      <div id="driver-sent-msgs"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
      SCREEN: ADMIN DASHBOARD
 ═══════════════════════════════════════ -->
 <div class="screen" id="screen-admin-home">
@@ -653,7 +699,8 @@
       <button class="tab active" onclick="adminTab('fahrer')">👥 Fahrer</button>
       <button class="tab" onclick="adminTab('kontrollen')">📋 Kontrollen</button>
       <button class="tab" onclick="adminTab('pods')">📄 PODs</button>
-      <button class="tab" onclick="adminTab('nachrichten')">🔔 Nachrichten</button>
+      <button class="tab" onclick="adminTab('nachrichten')">🔔 Senden</button>
+      <button class="tab" onclick="adminTab('fahrermsgs')">💬 Eingang</button>
     </div>
 
     <!-- FAHRER TAB -->
@@ -704,6 +751,11 @@
       </div>
       <div class="section-title mb-8">Gesendete Nachrichten</div>
       <div id="sent-notifs-list"></div>
+    </div>
+    <!-- FAHRERMSGS TAB -->
+    <div id="tab-fahrermsgs" class="hidden">
+      <div class="section-title mb-8">Nachrichten von Fahrern</div>
+      <div id="fahrer-msgs-list"></div>
     </div>
   </div>
 
@@ -796,26 +848,29 @@ const DB = {
     { username: 'admin', password: 'NM-Admin2025!', name: 'Administrator' }
   ],
   drivers: [
-    { id: 'd1', vorname: 'Thomas', nachname: 'Müller', email: 'mueller@fleet.de', username: 'Jimmy', password: 'pass123', email1: 'info@nm-it-solutions.de', email2: 'accounting@nm-it-solutions.de', status: 'active' },
-    { id: 'd2', vorname: 'Anna', nachname: 'Schmidt', email: 'schmidt@fleet.de', username: 'Nino', password: 'pass123', email1: 'kontrolle@fleet.de', email2: 'pod@fleet.de', status: 'active' },
-    { id: 'd3', vorname: 'Klaus', nachname: 'Weber', email: 'weber@fleet.de', username: 'Sachin', password: 'pass123', email1: 'info@fleet.de', email2: 'pod@fleet.de', status: 'inactive' },
+    { id: 'd1', vorname: 'Thomas', nachname: 'Müller', email: 'mueller@fleet.de', username: 'fahrer1', password: 'pass123', email1: 'kontrolle@fleet.de', email2: 'pod@fleet.de', status: 'active' },
+    { id: 'd2', vorname: 'Anna', nachname: 'Schmidt', email: 'schmidt@fleet.de', username: 'fahrer2', password: 'pass123', email1: 'kontrolle@fleet.de', email2: 'pod@fleet.de', status: 'active' },
+    { id: 'd3', vorname: 'Klaus', nachname: 'Weber', email: 'weber@fleet.de', username: 'fahrer3', password: 'pass123', email1: 'info@fleet.de', email2: 'pod@fleet.de', status: 'inactive' },
   ],
   checks: [],
   pods: [],
-  notifications: []
+  notifications: [],
+  driverMessages: []
 };
 
 const QUESTIONS = [
-  'Fahrzeug außen ohne sichtbare Schäden?',
-  'Reifen in Ordnung?',
-  'Beleuchtung funktionsfähig?',
-  'Spiegel in Ordnung?',
-  'Bremsen ohne Auffälligkeiten?',
-  'Ölstand kontrolliert?',
-  'Kühlwasser in Ordnung?',
-  'Ladung gesichert?',
-  'Warnweste, Warndreieck und Verbandskasten vorhanden?',
-  'Fahrzeugpapiere vorhanden?'
+  'Fahrzeug außen ohne sichtbare Schäden (Karosserie, Aufbau, Türen)?',
+  'Reifen und Reifendruck in Ordnung (inkl. Reserverad)?',
+  'Beleuchtung vollständig funktionsfähig (Scheinwerfer, Bremslicht, Blinker)?',
+  'Kühl- / Tiefkühlaggregat funktionsfähig und Temperatur im Sollbereich?',
+  'Laderaum sauber, geruchsneutral und frei von Fremdkörpern?',
+  'Türdichtungen des Kühlladeraums in Ordnung (keine Risse oder Schäden)?',
+  'Ladungssicherung vorhanden und in Ordnung (Gurte, Antirutschmatten)?',
+  'Fahrzeugpapiere, CMR und Lieferdokumente vollständig vorhanden?',
+  'Persönliche Schutzausrüstung vorhanden (Warnweste, Handschuhe, Sicherheitsschuhe)?',
+  'Warndreieck, Verbandskasten und Feuerlöscher vorhanden und zugänglich?',
+  'Führerschein und Fahrerkarte (Tachograph) vorhanden und gültig?',
+  'Kraftstoff- und AdBlue-Stand ausreichend für die geplante Tour?'
 ];
 
 // Pre-load some demo data
@@ -843,6 +898,7 @@ let abfahrtAnswers = {};
 let abfahrtPhotos = {};
 let podPhotos = [];
 let lastPDFBlob = null;
+let lastPDFBase64 = null;
 let screenHistory = [];
 let sigPads = {};
 let offlineQueue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
@@ -895,6 +951,7 @@ function goTo(id) {
   if (id === 'screen-admin-home') refreshAdmin();
   if (id === 'screen-driver-home') refreshDriverHome();
   if (id === 'screen-driver-notifs') renderDriverNotifs();
+  if (id === 'screen-driver-messages') { renderDriverNotifs2(); renderDriverSentMsgs(); }
 }
 
 function goBack() {
@@ -956,7 +1013,9 @@ function sendEmailWithPDF(toEmail, subject, message, type) {
     to_email: toEmail,
     from_name: 'FleetCheck Pro – NM-IT Solutions GmbH',
     subject: subject,
-    message: message
+    message: message,
+    pdf_data: lastPDFBase64 ? lastPDFBase64.split(',')[1] : '',
+    pdf_name: subject.replace(/[^a-z0-9]/gi,'_') + '.pdf'
   };
   console.log('EmailJS send params:', {
     service: emailSettings.serviceId,
@@ -985,6 +1044,132 @@ function testEmail() {
   const testTo = emailSettings.from || 'ticket@nm-it-solutions.de';
   showToast('📤 Sende Test-E-Mail an ' + testTo + '...', '');
   sendEmailWithPDF(testTo, 'FleetCheck Pro – Test', 'Dies ist eine Test-E-Mail von FleetCheck Pro. Wenn du diese E-Mail siehst, funktioniert der Versand korrekt!', 'test');
+}
+
+// ─── DRIVER MESSAGING ────────────────────────────────────────────
+let driverMsgPhotos = [];
+
+function msgTab(name) {
+  ['empfangen','senden'].forEach(t => {
+    document.getElementById('msg-tab-' + t).classList.toggle('hidden', t !== name);
+  });
+  document.querySelectorAll('#screen-driver-messages .tab').forEach((tab, i) => {
+    tab.classList.toggle('active', ['empfangen','senden'][i] === name);
+  });
+  if (name === 'empfangen') renderDriverNotifs2();
+  if (name === 'senden') renderDriverSentMsgs();
+}
+
+function renderDriverNotifs2() {
+  const list = document.getElementById('driver-notifs-list2');
+  list.innerHTML = '';
+  const myNotifs = DB.notifications.filter(n => (n.to === currentUser.id || n.to === 'all') && n.from === 'Admin');
+  if (myNotifs.length === 0) { list.innerHTML = '<p class="text-muted text-center" style="padding:40px 20px">Keine Nachrichten</p>'; return; }
+  [...myNotifs].reverse().forEach(n => {
+    const card = document.createElement('div');
+    card.className = 'notif-card' + (n.read ? ' read' : '');
+    card.innerHTML = `
+      <div class="notif-header">
+        <span class="notif-from">Von: ${n.from}</span>
+        <span class="notif-time">${new Date(n.timestamp).toLocaleString('de-DE')}</span>
+      </div>
+      <div class="notif-msg">${n.message}</div>
+      ${n.attachment ? `<div style="margin-top:8px"><a href="${n.attachment}" download="Anhang.pdf" class="btn btn-secondary btn-sm" style="display:inline-flex;text-decoration:none">📥 Anhang herunterladen</a></div>` : ''}
+      ${!n.read ? `<button class="btn btn-green btn-sm mt-8" onclick="markRead('${n.id}',this)">✅ Als gelesen markieren</button>` : '<span style="font-size:12px;color:var(--muted)">✅ Gelesen</span>'}
+    `;
+    list.appendChild(card);
+  });
+}
+
+function handleDriverMsgPhoto(event) {
+  Array.from(event.target.files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => { driverMsgPhotos.push(e.target.result); renderDriverMsgPhotos(); };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderDriverMsgPhotos() {
+  const prev = document.getElementById('driver-msg-photos');
+  prev.innerHTML = '';
+  driverMsgPhotos.forEach((src, i) => {
+    const img = document.createElement('img');
+    img.className = 'photo-thumb'; img.src = src;
+    img.onclick = () => { driverMsgPhotos.splice(i,1); renderDriverMsgPhotos(); };
+    prev.appendChild(img);
+  });
+}
+
+function sendDriverMessage() {
+  const text = document.getElementById('driver-msg-text').value.trim();
+  if (!text) { showToast('⚠️ Bitte Nachricht eingeben', 'error'); return; }
+  const msg = {
+    id: 'dm' + Date.now(),
+    from: currentUser.vorname + ' ' + currentUser.nachname,
+    fromId: currentUser.id,
+    to: 'admin',
+    message: text,
+    photos: [...driverMsgPhotos],
+    timestamp: new Date().toISOString(),
+    read: false
+  };
+  
+  DB.driverMessages.push(msg);
+  // Send email to admin
+  sendEmailWithPDF(
+    emailSettings.from || 'ticket@nm-it-solutions.de',
+    'Nachricht von Fahrer: ' + msg.from,
+    msg.from + ' schreibt:
+
+' + text,
+    'msg'
+  );
+  document.getElementById('driver-msg-text').value = '';
+  driverMsgPhotos = [];
+  renderDriverMsgPhotos();
+  renderDriverSentMsgs();
+  showToast('✅ Nachricht gesendet', 'success');
+}
+
+function renderDriverSentMsgs() {
+  const list = document.getElementById('driver-sent-msgs');
+  list.innerHTML = '';
+  const myMsgs = (DB.driverMessages || []).filter(m => m.fromId === currentUser.id);
+  if (myMsgs.length === 0) { list.innerHTML = '<p class="text-muted text-center" style="padding:20px">Keine gesendeten Nachrichten</p>'; return; }
+  [...myMsgs].reverse().forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'report-card';
+    card.innerHTML = `
+      <div class="report-top">
+        <div class="report-driver">An: Admin</div>
+        <div class="report-date">${new Date(m.timestamp).toLocaleString('de-DE')}</div>
+      </div>
+      <div style="font-size:14px;margin-top:6px;line-height:1.5">${m.message}</div>
+      ${m.photos && m.photos.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${m.photos.map(p=>`<img src="${p}" style="width:60px;height:60px;border-radius:8px;object-fit:cover">`).join('')}</div>` : ''}
+    `;
+    list.appendChild(card);
+  });
+}
+
+function renderFahrerMsgs() {
+  const list = document.getElementById('fahrer-msgs-list');
+  list.innerHTML = '';
+  const msgs = DB.driverMessages || [];
+  if (msgs.length === 0) { list.innerHTML = '<p class="text-muted text-center" style="padding:20px">Keine Nachrichten von Fahrern</p>'; return; }
+  [...msgs].reverse().forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'report-card';
+    card.innerHTML = `
+      <div class="report-top">
+        <div class="report-driver">Von: ${m.from}</div>
+        <div class="report-date">${new Date(m.timestamp).toLocaleString('de-DE')}</div>
+      </div>
+      <div style="font-size:14px;margin-top:6px;line-height:1.5">${m.message}</div>
+      ${m.photos && m.photos.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${m.photos.map(p=>`<img src="${p}" style="width:60px;height:60px;border-radius:8px;object-fit:cover">`).join('')}</div>` : ''}
+      <div class="mt-8"><span class="chip ${m.read?'ok':'warn'}">${m.read?'✅ Gelesen':'⏳ Neu'}</span></div>
+    `;
+    list.appendChild(card);
+  });
 }
 
 // ─── LOGIN ────────────────────────────────────────────────────────
@@ -1018,6 +1203,8 @@ function refreshDriverHome() {
   const badge = document.getElementById('notif-badge');
   if (myNotifs.length > 0) { badge.style.display='flex'; badge.textContent = myNotifs.length; }
   else { badge.style.display='none'; }
+  const dot = document.getElementById('msg-notif-dot');
+  if (dot) dot.classList.toggle('show', myNotifs.length > 0);
   updateOfflinePending();
 }
 
@@ -1339,6 +1526,34 @@ function generateAbfahrtPDF(entry) {
 
     y += 4;
 
+    // Mängel-Fotos
+    let hasPhotos = entry.answers.some(a => a.photos && a.photos.length > 0);
+    if (hasPhotos) {
+      checkY(20);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+      doc.setTextColor(30, 30, 30);
+      doc.text('Fotos zu Mängeln:', marginL, y); y += 6;
+      doc.setDrawColor(230,230,230); doc.line(marginL, y, marginR, y); y += 4;
+      entry.answers.forEach((a, i) => {
+        if (a.photos && a.photos.length > 0) {
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(180,80,40);
+          doc.text('Frage ' + (i+1) + ': ' + a.question, marginL, y); y += 5;
+          a.photos.forEach((photo, pi) => {
+            checkY(68);
+            try {
+              doc.setFillColor(245,247,250); doc.setDrawColor(220,220,220);
+              doc.roundedRect(marginL, y, 85, 60, 2, 2, 'FD');
+              doc.addImage(photo, 'JPEG', marginL+2, y+2, 81, 56);
+            } catch(e) {
+              try { doc.addImage(photo, 'PNG', marginL+2, y+2, 81, 56); } catch(e2) {}
+            }
+            y += 64;
+          });
+        }
+      });
+      y += 4;
+    }
+
     // Signature
     checkY(40);
     doc.setFontSize(9); doc.setFont('helvetica', 'bold');
@@ -1364,7 +1579,8 @@ function generateAbfahrtPDF(entry) {
     doc.text('FleetCheck Pro  |  Automatisch generierter Bericht  |  ' + new Date().toLocaleDateString('de-DE'), pageW / 2, 293, { align: 'center' });
 
     lastPDFBlob = doc.output('blob');
-  } catch(e) { console.warn('PDF error', e); lastPDFBlob = null; }
+  lastPDFBase64 = doc.output('datauristring');
+  } catch(e) { console.warn('PDF error', e); lastPDFBlob = null; lastPDFBase64 = null; }
 }
 
 function generatePODPDF(entry) {
@@ -1447,7 +1663,8 @@ function generatePODPDF(entry) {
     doc.text('FleetCheck Pro  |  POD Bericht  |  ' + new Date().toLocaleDateString('de-DE'), pageW / 2, 293, { align: 'center' });
 
     lastPDFBlob = doc.output('blob');
-  } catch(e) { console.warn('PDF error', e); lastPDFBlob = null; }
+    lastPDFBase64 = doc.output('datauristring');
+  } catch(e) { console.warn('PDF error', e); lastPDFBlob = null; lastPDFBase64 = null; }
 }
 
 function downloadLastPDF() {
@@ -1476,14 +1693,15 @@ function refreshAdmin() {
 }
 
 function adminTab(name) {
-  ['fahrer','kontrollen','pods','nachrichten'].forEach(t => {
+  ['fahrer','kontrollen','pods','nachrichten','fahrermsgs'].forEach(t => {
     document.getElementById('tab-' + t).classList.toggle('hidden', t !== name);
   });
   document.querySelectorAll('#admin-tabs .tab').forEach((tab, i) => {
-    tab.classList.toggle('active', ['fahrer','kontrollen','pods','nachrichten'][i] === name);
+    tab.classList.toggle('active', ['fahrer','kontrollen','pods','nachrichten','fahrermsgs'][i] === name);
   });
   const fab = document.getElementById('fab-add');
   fab.style.display = name === 'fahrer' ? 'flex' : 'none';
+  if (name === 'fahrermsgs') renderFahrerMsgs();
 }
 
 function renderFahrerList(drivers) {
