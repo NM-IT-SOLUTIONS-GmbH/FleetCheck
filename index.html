@@ -906,7 +906,12 @@ function goBack() {
 }
 
 // ─── EMAIL (Office 365 via EmailJS) ──────────────────────────────
-let emailSettings = JSON.parse(localStorage.getItem('o365settings') || '{}');
+let emailSettings = JSON.parse(localStorage.getItem('o365settings') || JSON.stringify({
+  from: 'ticket@nm-it-solutions.de',
+  serviceId: 'service_ozle88h',
+  templateId: 'template_rhlauh4',
+  pubkey: 'stMuoBX-6IVsZeMaB'
+}));
 
 function saveO365Settings() {
   emailSettings = {
@@ -932,7 +937,7 @@ function loadO365Settings() {
 
 function initEmailJS() {
   if (typeof emailjs !== 'undefined' && emailSettings.pubkey) {
-    emailjs.init(emailSettings.pubkey);
+    try { emailjs.init(emailSettings.pubkey); } catch(e) {}
   }
 }
 
@@ -946,7 +951,7 @@ function sendEmailWithPDF(toEmail, subject, message, type) {
     showToast('⚠️ EmailJS Bibliothek nicht geladen – bitte Seite neu laden', 'error'); return;
   }
   // Always re-initialize before sending
-  try { emailjs.init({ publicKey: emailSettings.pubkey }); } catch(e) {}
+  try { emailjs.init(emailSettings.pubkey); } catch(e) { console.log('init error', e); }
   const params = {
     to_email: toEmail,
     from_name: 'FleetCheck Pro – NM-IT Solutions GmbH',
