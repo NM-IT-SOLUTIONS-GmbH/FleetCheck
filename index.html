@@ -535,19 +535,19 @@
      SCREEN: ABFAHRTSKONTROLLE
 ═══════════════════════════════════════ -->
 <div class="screen" id="screen-abfahrt">
-  <div class="topbar" style="flex-direction:column;padding-bottom:0;gap:0">
-    <div style="display:flex;align-items:center;width:100%;padding-bottom:10px">
-      <button class="btn btn-secondary btn-sm btn-icon" onclick="goBack()">←</button>
-      <div style="flex:1;margin-left:12px">
-        <div class="topbar-title">Abfahrtskontrolle</div>
-      </div>
-      <div id="abfahrt-counter" style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--accent);background:rgba(26,122,191,0.1);padding:4px 12px;border-radius:20px;white-space:nowrap">0 / 12</div>
+  <div class="topbar">
+    <button class="btn btn-secondary btn-sm btn-icon" onclick="goBack()">←</button>
+    <div style="flex:1;margin-left:12px">
+      <div class="topbar-title">Abfahrtskontrolle</div>
     </div>
-    <div style="width:100%;padding:0 0 10px 0">
-      <div class="progress-wrap" style="margin-bottom:0">
-        <div class="progress-fill" id="abfahrt-progress" style="width:0%"></div>
-      </div>
+    <div id="abfahrt-counter" style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--accent);background:rgba(26,122,191,0.1);padding:4px 12px;border-radius:20px;white-space:nowrap">0 / 12</div>
+  </div>
+  <!-- Sticky progress bar -->
+  <div style="position:sticky;top:61px;z-index:99;background:var(--surface);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:10px">
+    <div class="progress-wrap" style="flex:1;margin-bottom:0">
+      <div class="progress-fill" id="abfahrt-progress" style="width:0%"></div>
     </div>
+    <div id="abfahrt-counter-bar" style="font-size:12px;font-weight:700;color:var(--accent);white-space:nowrap;min-width:40px;text-align:right">0/12</div>
   </div>
   <div class="page-content">
     <div id="abfahrt-questions"></div>
@@ -764,6 +764,14 @@
           <label>Nachricht</label>
           <textarea id="notif-message" placeholder="z.B. Routenänderung auf A3, bitte über A61 fahren..."></textarea>
         </div>
+        <div class="form-group">
+          <label>Anhang (PDF oder Bild, optional)</label>
+          <div id="notif-attachment-preview" style="margin-bottom:8px"></div>
+          <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface2);border:1.5px dashed var(--border);border-radius:10px;cursor:pointer;font-size:13px;color:var(--muted)">
+            📎 Datei auswählen (PDF, JPG, PNG)
+            <input type="file" id="notif-attachment" accept=".pdf,image/*" onchange="previewNotifAttachment(event)" style="display:none">
+          </label>
+        </div>
         <button class="btn btn-primary" onclick="sendNotification()">📨 Senden</button>
       </div>
       <div class="section-title mb-8">Gesendete Nachrichten</div>
@@ -797,6 +805,12 @@
     <div class="form-group" style="background:rgba(26,122,191,0.08);border:1px solid var(--border);border-radius:10px;padding:12px">
       <p style="font-size:12px;color:var(--muted);line-height:1.6;margin:0">
         <strong style="color:var(--text)">Hinweis:</strong> Da Browser keine direkte SMTP-Verbindung erlauben, wird der E-Mail-Versand über einen kleinen Relay-Service (EmailJS) abgewickelt. Die E-Mails gehen trotzdem von deiner O365-Adresse aus.
+      </p>
+    </div>
+    <div style="background:rgba(30,158,87,0.08);border:1px solid rgba(30,158,87,0.3);border-radius:10px;padding:12px;margin-bottom:12px">
+      <p style="font-size:12px;color:var(--muted);line-height:1.6;margin:0">
+        ✅ <strong style="color:var(--text)">Cloudinary aktiv</strong> – PDFs werden automatisch hochgeladen und als Link in E-Mails versendet.<br>
+        <span style="font-size:11px">Cloud: <strong>dujbui2dw</strong> · Preset: <strong>fleet_uploads</strong></span>
       </p>
     </div>
     <div class="form-group" style="margin-top:12px"><label>EmailJS Service ID</label><input type="text" id="o365-service" placeholder="service_xxxxxxx"></div>
@@ -898,6 +912,55 @@ function initFirebase() {
     }
     return true;
   } catch(e) { console.error('Firebase init error:', e); return false; }
+}
+
+// ─── CLOUDINARY UPLOAD ───────────────────────────────────────────
+const CLOUDINARY_CLOUD = 'dujbui2dw';
+const CLOUDINARY_PRESET = 'fleet_uploads';
+const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/upload';
+
+async function uploadPDFToStorage(pdfBlob, filename) {
+  try {
+    const formData = new FormData();
+    formData.append('file', pdfBlob, filename);
+    formData.append('upload_preset', CLOUDINARY_PRESET);
+    formData.append('folder', 'fleet_pdfs');
+    formData.append('resource_type', 'raw'); // for PDFs
+    const response = await fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/raw/upload', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await response.json();
+    if (data.secure_url) {
+      console.log('PDF uploaded to Cloudinary:', data.secure_url);
+      return data.secure_url;
+    }
+    console.error('Cloudinary error:', data);
+    return null;
+  } catch(e) {
+    console.error('Cloudinary upload error:', e);
+    return null;
+  }
+}
+
+async function uploadAttachmentToStorage(file, folder) {
+  try {
+    const isRaw = file.type === 'application/pdf';
+    const endpoint = 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/' + (isRaw ? 'raw' : 'image') + '/upload';
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_PRESET);
+    formData.append('folder', 'fleet_attachments');
+    const response = await fetch(endpoint, { method: 'POST', body: formData });
+    const data = await response.json();
+    if (data.secure_url) {
+      return { url: data.secure_url, name: file.name || 'Anhang', type: file.type };
+    }
+    return null;
+  } catch(e) {
+    console.error('Cloudinary attachment error:', e);
+    return null;
+  }
 }
 
 function setupFirebaseListeners() {
@@ -1236,13 +1299,22 @@ function renderDriverNotifs2() {
   [...myNotifs].reverse().forEach(n => {
     const card = document.createElement('div');
     card.className = 'notif-card' + (n.read ? ' read' : '');
+    const attachIcon = n.attachmentType && n.attachmentType.includes('pdf') ? '📄' : '🖼️';
     card.innerHTML = `
       <div class="notif-header">
         <span class="notif-from">Von: ${n.from}</span>
         <span class="notif-time">${new Date(n.timestamp).toLocaleString('de-DE')}</span>
       </div>
       <div class="notif-msg">${n.message}</div>
-      ${n.attachment ? `<div style="margin-top:8px"><a href="${n.attachment}" download="Anhang.pdf" class="btn btn-secondary btn-sm" style="display:inline-flex;text-decoration:none">📥 Anhang herunterladen</a></div>` : ''}
+      ${n.attachment ? `
+        <a href="${n.attachment}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 14px;background:rgba(26,122,191,0.1);border:1px solid rgba(26,122,191,0.3);border-radius:10px;text-decoration:none;color:var(--accent)">
+          <span style="font-size:20px">${attachIcon}</span>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:13px">${n.attachmentName || 'Anhang öffnen'}</div>
+            <div style="font-size:11px;color:var(--muted)">Tippen zum Öffnen / Herunterladen</div>
+          </div>
+          <span style="font-size:18px">↓</span>
+        </a>` : ''}
       ${!n.read ? `<button class="btn btn-green btn-sm mt-8" onclick="markRead('${n.id}',this)">✅ Als gelesen markieren</button>` : '<span style="font-size:12px;color:var(--muted)">✅ Gelesen</span>'}
     `;
     list.appendChild(card);
@@ -1477,12 +1549,15 @@ function updateAbfahrtProgress() {
   const total = QUESTIONS.length;
   const pct = (answered / total) * 100;
   document.getElementById('abfahrt-progress').style.width = pct + '%';
+  const isComplete = answered === total;
+  const color = isComplete ? 'var(--green)' : 'var(--accent)';
+  const bg = isComplete ? 'rgba(30,158,87,0.12)' : 'rgba(26,122,191,0.1)';
   const counter = document.getElementById('abfahrt-counter');
-  if (counter) {
-    counter.textContent = answered + ' / ' + total;
-    counter.style.color = answered === total ? 'var(--green)' : 'var(--accent)';
-    counter.style.background = answered === total ? 'rgba(30,158,87,0.12)' : 'rgba(26,122,191,0.1)';
-  }
+  if (counter) { counter.textContent = answered + ' / ' + total; counter.style.color = color; counter.style.background = bg; }
+  const barCounter = document.getElementById('abfahrt-counter-bar');
+  if (barCounter) { barCounter.textContent = answered + '/' + total; barCounter.style.color = color; }
+  if (isComplete) document.getElementById('abfahrt-progress').style.background = 'var(--green)';
+  else document.getElementById('abfahrt-progress').style.background = 'linear-gradient(90deg, var(--accent), var(--accent2))';
 }
 
 function handleAbfahrtPhoto(event, idx) {
@@ -1658,10 +1733,18 @@ function submitPOD() {
       setTimeout(() => {
         // Build smart email from OCR
         const ocrTexts = compressed._ocrTexts || [];
-        // Build OCR section - each page separately
         const ocrSection = ocrTexts.length > 0
           ? ocrTexts.map((t, i) => 'Beleg ' + (i+1) + ':\n' + t.trim().substring(0, 400)).join('\n\n')
           : '';
+
+        // Upload POD PDF to Firebase Storage
+        let podPdfLink = 'https://demo.my-fleet.app';
+        if (lastPDFBlob && firebaseStorage) {
+          const podFilename = 'pod_' + compressed.driverName.replace(/\s/g,'_') + '_' + Date.now() + '.pdf';
+          const uploadedUrl = await uploadPDFToStorage(lastPDFBlob, podFilename);
+          if (uploadedUrl) podPdfLink = uploadedUrl;
+        }
+
         const emailBody = [
           'Sehr geehrte Damen und Herren,',
           '',
@@ -2209,22 +2292,47 @@ function renderKontrollen() {
 }
 
 function openKontrolleDetail(c) {
-  const content = document.getElementById('modal-kontrolle-content');
-  content.innerHTML = `
-    <p class="text-muted mb-8">Fahrer: <strong style="color:var(--text)">${c.driverName}</strong></p>
-    <p class="text-muted mb-8">Datum: <strong style="color:var(--text)">${new Date(c.timestamp).toLocaleString('de-DE')}</strong></p>
-    <div class="divider"></div>
-    ${c.answers.map((a,i) => `
-      <div style="margin-bottom:12px">
-        <div style="font-size:12px;color:var(--muted)">${i+1}. ${a.question}</div>
-        <div style="font-weight:600;color:${a.answer==='nein'?'var(--red)':a.answer==='io'?'var(--blue)':'var(--green)'}">
-          ${a.answer === 'ja' ? '✅ Ja / In Ordnung' : '❌ Nein / Mängel'}
-        </div>
-        ${a.remark ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">→ ${a.remark}</div>` : ''}
-        ${a.photos && a.photos.length ? a.photos.map(p => `<img src="${p}" style="width:60px;height:60px;border-radius:8px;margin-top:4px;object-fit:cover">`).join('') : ''}
+  const cont = document.getElementById('modal-kontrolle-content');
+  const maengel = c.answers ? c.answers.filter(a => a.answer === 'nein').length : 0;
+  const ok = c.answers ? c.answers.filter(a => a.answer !== 'nein').length : 0;
+  cont.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <div style="background:var(--surface2);border-radius:10px;padding:10px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:2px">Fahrer</div>
+        <div style="font-weight:700;font-size:14px">${c.driverName}</div>
       </div>
-    `).join('')}
-    ${c.signature ? `<div class="divider"></div><p style="font-size:12px;color:var(--muted)">Unterschrift:</p><img src="${c.signature}" style="max-width:200px;border-radius:8px;margin-top:4px;border:1px solid var(--border)">` : ''}
+      <div style="background:var(--surface2);border-radius:10px;padding:10px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:2px">Datum</div>
+        <div style="font-weight:700;font-size:12px">${new Date(c.timestamp).toLocaleString('de-DE')}</div>
+      </div>
+      <div style="background:rgba(30,158,87,0.1);border-radius:10px;padding:10px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:2px">In Ordnung</div>
+        <div style="font-weight:700;font-size:18px;color:var(--green)">${ok}</div>
+      </div>
+      <div style="background:${maengel>0?'rgba(217,48,37,0.1)':'rgba(30,158,87,0.1)'};border-radius:10px;padding:10px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:2px">Mängel</div>
+        <div style="font-weight:700;font-size:18px;color:${maengel>0?'var(--red)':'var(--green)'}">${maengel}</div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    ${c.answers ? c.answers.map((a,i) => {
+      const isOk = a.answer !== 'nein';
+      const validPhotos = a.photos ? a.photos.filter(p => p && p.startsWith && p.startsWith('data:')) : [];
+      return `<div style="margin-bottom:10px;padding:10px;background:${isOk?'var(--surface2)':'rgba(217,48,37,0.06)'};border-radius:10px;border-left:3px solid ${isOk?'var(--green)':'var(--red)'}">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${i+1}. ${a.question}</div>
+        <div style="font-weight:700;font-size:13px;color:${isOk?'var(--green)':'var(--red)'}">
+          ${isOk ? '✅ Ja / In Ordnung' : '❌ Nein / Mängel'}
+        </div>
+        ${a.remark ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;padding:4px 8px;background:var(--surface);border-radius:6px">→ ${a.remark}</div>` : ''}
+        ${validPhotos.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${validPhotos.map(p => `<img src="${p}" style="width:70px;height:70px;border-radius:8px;object-fit:cover;border:1px solid var(--border)">`).join('')}</div>` : ''}
+        ${!isOk && a.photoCount > 0 && validPhotos.length === 0 ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">📷 ${a.photoCount} Foto(s) – im Fahrer-PDF verfügbar</div>` : ''}
+      </div>`;
+    }).join('') : ''}
+    ${c.signature && c.signature !== 'sig_present' && c.signature.startsWith('data:') ? 
+      `<div class="divider"></div>
+       <p style="font-size:12px;color:var(--muted);margin-bottom:6px">Unterschrift des Fahrers:</p>
+       <img src="${c.signature}" style="max-width:220px;border-radius:8px;border:1px solid var(--border);background:#fff">` : 
+      c.signature ? `<div class="divider"></div><p style="font-size:12px;color:var(--muted)">✅ Unterschrift vorhanden (im PDF)</p>` : ''}
   `;
   openModal('modal-kontrolle');
 }
@@ -2324,11 +2432,40 @@ function openPODDetail(p) {
 }
 
 // ─── NOTIFICATIONS ────────────────────────────────────────────────
-function sendNotification() {
+function previewNotifAttachment(event) {
+  const file = event.target.files[0];
+  const preview = document.getElementById('notif-attachment-preview');
+  if (!file) { preview.innerHTML = ''; return; }
+  preview.innerHTML = `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;display:flex;align-items:center;gap:8px">
+    <span>${file.type.includes('pdf') ? '📄' : '🖼️'}</span>
+    <span style="flex:1">${file.name}</span>
+    <span style="color:var(--muted)">${(file.size/1024).toFixed(0)} KB</span>
+    <button onclick="document.getElementById('notif-attachment').value='';document.getElementById('notif-attachment-preview').innerHTML=''" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px">×</button>
+  </div>`;
+}
+
+async function sendNotification() {
   const to = document.getElementById('notif-recipient').value;
   const msg = document.getElementById('notif-message').value.trim();
   if (!msg) { showToast('⚠️ Bitte Nachricht eingeben', 'error'); return; }
+
   const newNotif = { id: 'n' + Date.now(), from: 'Admin', to, message: msg, timestamp: new Date().toISOString(), read: false };
+
+  // Upload attachment if present
+  const fileInput = document.getElementById('notif-attachment');
+  if (fileInput && fileInput.files[0] && firebaseStorage) {
+    showToast('⏳ Anhang wird hochgeladen...', '');
+    const file = fileInput.files[0];
+    const result = await uploadAttachmentToStorage(file, 'attachments');
+    if (result) {
+      newNotif.attachment = result.url;
+      newNotif.attachmentName = result.name;
+      newNotif.attachmentType = result.type;
+    }
+    fileInput.value = '';
+    document.getElementById('notif-attachment-preview').innerHTML = '';
+  }
+
   if (firebaseDB) {
     firebaseDB.ref('notifications/' + newNotif.id).set(newNotif);
   } else {
