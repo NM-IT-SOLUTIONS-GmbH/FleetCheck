@@ -6,6 +6,7 @@
 <title>FleetCheck Pro</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
@@ -580,14 +581,6 @@
       <label>Bemerkungen (optional)</label>
       <textarea id="pod-remarks" placeholder="z.B. Kunde abwesend, Übergabe an Nachbarn..."></textarea>
     </div>
-    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px">
-      <div class="question-num">Unterschrift</div>
-      <div class="question-text">Bitte hier unterschreiben:</div>
-      <div class="sig-area">
-        <canvas class="sig-canvas" id="sig-canvas-pod"></canvas>
-        <button class="sig-clear" onclick="clearSig('sig-canvas-pod')">Löschen</button>
-      </div>
-    </div>
     <button class="btn btn-primary" onclick="submitPOD()" style="margin-bottom:20px">
       📤 POD absenden
     </button>
@@ -727,10 +720,15 @@
 
     <!-- PODS TAB -->
     <div id="tab-pods" class="hidden">
-      <div class="flex gap-8 mb-8">
-        <select id="filter-pod-fahrer" onchange="renderPODs()" style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px">
+      <div class="flex gap-8 mb-8" style="flex-wrap:wrap">
+        <select id="filter-pod-fahrer" onchange="renderPODs()" style="flex:1;min-width:120px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px">
           <option value="">Alle Fahrer</option>
         </select>
+        <input type="date" id="filter-pod-date" onchange="renderPODs()" style="flex:1;min-width:120px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px">
+      </div>
+      <div class="search-wrap mb-8">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="filter-pod-search" placeholder="Suche nach Lieferschein, Kunde, Text..." oninput="renderPODs()" style="padding-left:40px;width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:12px 12px 12px 40px;color:var(--text);font-size:13px">
       </div>
       <div id="pods-list"></div>
     </div>
@@ -1150,9 +1148,7 @@ function sendEmailWithPDF(toEmail, subject, message, type) {
     to_email: toEmail,
     from_name: 'FleetCheck Pro – NM-IT Solutions GmbH',
     subject: subject,
-    message: message,
-    pdf_data: lastPDFBase64 ? lastPDFBase64.split(',')[1] : '',
-    pdf_name: subject.replace(/[^a-z0-9]/gi,'_') + '.pdf'
+    message: message + '\n\nBitte loggen Sie sich in der App ein um das PDF herunterzuladen.'
   };
   console.log('EmailJS send params:', {
     service: emailSettings.serviceId,
@@ -1468,7 +1464,6 @@ function initPOD() {
   podPhotos = [];
   document.getElementById('pod-photos').innerHTML = '';
   document.getElementById('pod-remarks').value = '';
-  initSigPad('sig-canvas-pod');
 }
 
 function handlePodPhotos(event) {
@@ -1491,7 +1486,6 @@ function renderPodPhotos() {
 }
 
 function submitPOD() {
-  const sigData = getSigData('sig-canvas-pod');
   const entry = {
     id: 'p' + Date.now(),
     driverId: currentUser.id,
@@ -1499,7 +1493,6 @@ function submitPOD() {
     timestamp: new Date().toISOString(),
     photos: podPhotos,
     remarks: document.getElementById('pod-remarks').value,
-    signature: sigData,
     offline: !isOnline
   };
   // Save to Firebase or local
@@ -1516,18 +1509,46 @@ function submitPOD() {
   generatePODPDF(entry);
   document.getElementById('success-title').textContent = '📄 POD hochgeladen!';
   document.getElementById('success-icon').textContent = '📄';
-  if (isOnline) {
-    const recipient = currentUser.email2 || currentUser.email;
-    // Small delay to ensure PDF is generated before sending
-    setTimeout(() => {
-      sendEmailWithPDF(recipient, 'POD Liefernachweis – ' + entry.driverName,
-        'Anbei der POD-Liefernachweis vom ' + new Date(entry.timestamp).toLocaleString('de-DE') + ' von Fahrer ' + entry.driverName + '. Anzahl Belege: ' + entry.photos.length, 'pod');
-    }, 800);
-    document.getElementById('success-msg').textContent = 'Belege werden an ' + recipient + ' gesendet...';
-  } else {
-    document.getElementById('success-msg').textContent = '📡 Offline gespeichert – wird automatisch synchronisiert.';
-  }
+  document.getElementById('success-msg').textContent = '⏳ PDF wird erstellt...';
   goTo('screen-success');
+  // Compress photos then generate PDF and send email
+  compressEntry(entry).then(async compressed => {
+    await generatePODPDF(compressed);
+    if (isOnline) {
+      const recipient = currentUser.email2 || currentUser.email;
+      setTimeout(() => {
+        // Build smart email from OCR
+        const ocrSummary = compressed._ocrTexts ? compressed._ocrTexts.join(' ').substring(0, 300) : '';
+        const emailBody = [
+          'Sehr geehrte Damen und Herren,',
+          '',
+          'Fahrer ' + compressed.driverName + ' hat am ' + new Date(compressed.timestamp).toLocaleString('de-DE') + ' Ablieferbelege eingescannt und übermittelt.',
+          '',
+          'Anzahl Belege: ' + compressed.photos.length,
+          compressed.remarks ? 'Bemerkung: ' + compressed.remarks : '',
+          '',
+          ocrSummary ? 'Erkannte Informationen aus den Belegen:' : '',
+          ocrSummary ? ocrSummary : '',
+          '',
+          'Das vollständige PDF mit allen Belegen steht zum Download in der FleetCheck App bereit.',
+          '',
+          'Mit freundlichen Grüßen',
+          'FleetCheck Pro – NM-IT Solutions GmbH'
+        ].filter(Boolean).join('\n');
+
+        // Save OCR text to Firebase for search
+        if (firebaseDB && compressed._ocrTexts) {
+          firebaseDB.ref('pods/' + compressed.id + '/ocrText').set(compressed._ocrTexts.join(' '));
+          firebaseDB.ref('pods/' + compressed.id + '/photoCount').set(compressed.photos.length);
+        }
+
+        sendEmailWithPDF(recipient, 'POD Liefernachweis – ' + compressed.driverName, emailBody, 'pod');
+        document.getElementById('success-msg').textContent = 'E-Mail wird an ' + recipient + ' gesendet...';
+      }, 500);
+    } else {
+      document.getElementById('success-msg').textContent = '📡 Offline gespeichert – wird automatisch synchronisiert.';
+    }
+  });
 }
 
 // ─── SIGNATURE PAD ────────────────────────────────────────────────
@@ -1577,6 +1598,37 @@ function getSigData(canvasId) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return '';
   return canvas.toDataURL('image/png');
+}
+
+// ─── IMAGE COMPRESSION ───────────────────────────────────────────
+function compressImage(base64, maxWidth, quality) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(base64);
+    img.src = base64;
+  });
+}
+
+async function compressEntry(entry) {
+  // Compress all photos in answers
+  for (let a of entry.answers) {
+    if (a.photos && a.photos.length > 0) {
+      a.photos = await Promise.all(a.photos.map(p => compressImage(p, 800, 0.6)));
+    }
+  }
+  if (entry.photos) {
+    entry.photos = await Promise.all(entry.photos.map(p => compressImage(p, 800, 0.6)));
+  }
+  return entry;
 }
 
 // ─── PDF GENERATION ──────────────────────────────────────────────
@@ -1736,7 +1788,7 @@ function generateAbfahrtPDF(entry) {
   } catch(e) { console.warn('PDF error', e); lastPDFBlob = null; lastPDFBase64 = null; }
 }
 
-function generatePODPDF(entry) {
+async function generatePODPDF(entry) {
   try {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -1778,35 +1830,45 @@ function generatePODPDF(entry) {
     }
     y += entry.remarks ? 29 : 22;
 
-    // Photos
-    if (entry.photos.length > 0) {
+    // Photos with OCR
+    if (entry.photos && entry.photos.length > 0) {
       doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(30, 30, 30);
-      doc.text('Belege (' + entry.photos.length + '):', marginL, y); y += 5;
-      entry.photos.forEach((photo, i) => {
-        checkY(68);
+      doc.text('Eingescannte Belege (' + entry.photos.length + '):', marginL, y); y += 5;
+
+      for (let i = 0; i < entry.photos.length; i++) {
+        const photo = entry.photos[i];
+        checkY(120);
+        // Add image
         doc.setFillColor(245, 247, 250); doc.setDrawColor(220, 220, 220);
-        doc.roundedRect(marginL, y, contentW, 65, 2, 2, 'FD');
+        doc.roundedRect(marginL, y, contentW, 90, 2, 2, 'FD');
         doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(150, 150, 150);
         doc.text('Beleg ' + (i + 1), marginL + 3, y + 5);
-        try { doc.addImage(photo, 'JPEG', marginL + 3, y + 7, 90, 55); } catch(e) {
-          try { doc.addImage(photo, 'PNG', marginL + 3, y + 7, 90, 55); } catch(e2) {}
-        }
-        y += 68;
-      });
+        try { doc.addImage(photo, 'JPEG', marginL + 3, y + 7, contentW - 6, 80); }
+        catch(e) { try { doc.addImage(photo, 'PNG', marginL + 3, y + 7, contentW - 6, 80); } catch(e2) {} }
+        y += 94;
+
+        // OCR text extraction
+        try {
+          const ocrResult = await Tesseract.recognize(photo, 'deu+eng', {});
+          const ocrText = ocrResult.data.text.trim();
+          if (ocrText) {
+            entry._ocrTexts = entry._ocrTexts || [];
+            entry._ocrTexts.push(ocrText);
+            const shortText = ocrText.substring(0, 400);
+            doc.setFontSize(7.5); doc.setTextColor(80, 80, 80);
+            doc.setFillColor(248, 249, 252);
+            const ocrLines = doc.splitTextToSize('Erkannter Text: ' + shortText, contentW - 4);
+            const ocrH = Math.min(ocrLines.length * 4 + 6, 40);
+            checkY(ocrH + 4);
+            doc.roundedRect(marginL, y, contentW, ocrH, 2, 2, 'F');
+            doc.text(ocrLines.slice(0, 8), marginL + 2, y + 4);
+            y += ocrH + 4;
+          }
+        } catch(ocrErr) { console.warn('OCR error:', ocrErr); y += 2; }
+      }
     } else {
       doc.setFontSize(10); doc.setTextColor(150, 150, 150);
       doc.text('Keine Bilder hochgeladen.', marginL, y); y += 8;
-    }
-
-    // Signature
-    checkY(42);
-    y += 4;
-    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(80, 80, 80);
-    doc.text('Unterschrift des Fahrers:', marginL, y); y += 4;
-    doc.setDrawColor(200, 200, 200); doc.setFillColor(252, 252, 252);
-    doc.roundedRect(marginL, y, 85, 32, 2, 2, 'FD');
-    if (entry.signature) {
-      try { doc.addImage(entry.signature, 'PNG', marginL + 2, y + 2, 81, 28); } catch(e) {}
     }
 
     // Footer
@@ -2018,23 +2080,39 @@ function renderPODs() {
   const list = document.getElementById('pods-list');
   list.innerHTML = '';
   const fDriver = document.getElementById('filter-pod-fahrer').value;
+  const fDate = document.getElementById('filter-pod-date') ? document.getElementById('filter-pod-date').value : '';
+  const fSearch = document.getElementById('filter-pod-search') ? document.getElementById('filter-pod-search').value.toLowerCase().trim() : '';
   let pods = [...DB.pods].reverse();
   if (fDriver) pods = pods.filter(p => p.driverId === fDriver);
-  if (pods.length === 0) { list.innerHTML = '<p class="text-muted text-center" style="padding:20px">Keine PODs</p>'; return; }
+  if (fDate) pods = pods.filter(p => p.timestamp && p.timestamp.startsWith(fDate));
+  if (fSearch) pods = pods.filter(p => {
+    const searchIn = [
+      p.driverName || '',
+      p.remarks || '',
+      p.ocrText || '',
+      new Date(p.timestamp).toLocaleString('de-DE')
+    ].join(' ').toLowerCase();
+    return searchIn.includes(fSearch);
+  });
+  if (pods.length === 0) { list.innerHTML = '<p class="text-muted text-center" style="padding:20px">Keine PODs gefunden</p>'; return; }
   pods.forEach(p => {
     const card = document.createElement('div');
     card.className = 'report-card';
     card.style.cursor = 'pointer';
+    const photoCount = p.photoCount || (p.photos ? p.photos.length : 0);
+    const ocrPreview = p.ocrText ? p.ocrText.substring(0, 120) + '...' : '';
     card.innerHTML = `
       <div class="report-top">
         <div class="report-driver">${p.driverName}</div>
         <div class="report-date">${new Date(p.timestamp).toLocaleString('de-DE')}</div>
       </div>
-      <div class="report-status">
-        <div class="chip ok">📷 ${p.photos.length} Bild(er)</div>
-        ${p.remarks ? `<div class="chip">💬 Bemerkung</div>` : ''}
+      <div class="report-status" style="margin-top:6px">
+        <div class="chip ok">📷 ${photoCount} Beleg(e)</div>
+        ${p.remarks ? `<div class="chip">💬 ${p.remarks.substring(0,30)}</div>` : ''}
+        ${p.ocrText ? `<div class="chip" style="color:var(--blue)">🔍 OCR</div>` : ''}
         ${p.offline ? '<div class="sync-badge">Offline</div>' : ''}
       </div>
+      ${ocrPreview ? `<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5;padding:6px 8px;background:var(--surface2);border-radius:6px">${ocrPreview}</div>` : ''}
     `;
     card.onclick = () => openPODDetail(p);
     list.appendChild(card);
