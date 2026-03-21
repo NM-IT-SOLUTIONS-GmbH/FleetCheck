@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>FleetCheck Pro</title>
+<title>my Fleet app</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -478,7 +478,7 @@
       <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
     </div>
     <button class="btn btn-primary" onclick="doLogin()">🔐 Anmelden</button>
-    <div class="demo-hint" style="font-size:11px;color:var(--muted);margin-top:16px">© 2025 NM-IT Solutions GmbH · Alle Rechte vorbehalten</div>
+    <div class="demo-hint" style="font-size:11px;color:var(--muted);margin-top:16px">© 2026 NM-IT Solutions GmbH · Alle Rechte vorbehalten</div>
   </div>
 </div>
 
@@ -488,7 +488,7 @@
 <div class="screen" id="screen-driver-home">
   <div class="topbar">
     <div>
-      <div class="topbar-title">FleetCheck Pro</div>
+      <div class="topbar-title">my Fleet app</div>
       <div class="topbar-sub" id="driver-topbar-sub"></div>
     </div>
     <div class="flex gap-8 items-center">
@@ -665,7 +665,7 @@
   <div class="topbar">
     <div>
       <div class="topbar-title">Admin Dashboard</div>
-      <div class="topbar-sub">FleetCheck Pro</div>
+      <div class="topbar-sub">my Fleet app</div>
     </div>
     <button class="btn btn-secondary btn-sm" onclick="openModal('modal-o365')">📧 E-Mail</button>
     <button class="btn btn-secondary btn-sm" onclick="doLogout()">Abmelden</button>
@@ -727,6 +727,9 @@
 
     <!-- PODS TAB -->
     <div id="tab-pods" class="hidden">
+      <div class="flex gap-8 mb-8" style="justify-content:flex-end">
+        <button class="btn btn-danger btn-sm" onclick="clearAllPODs()" style="font-size:12px">🗑 Alle PODs löschen</button>
+      </div>
       <div class="flex gap-8 mb-8" style="flex-wrap:wrap">
         <select id="filter-pod-fahrer" onchange="renderPODs()" style="flex:1;min-width:120px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px">
           <option value="">Alle Fahrer</option>
@@ -811,6 +814,7 @@
     <div class="form-group"><label>Passwort</label><input type="password" id="f-pass" placeholder="••••••••"></div>
     <div class="form-group"><label>E-Mail Abfahrtskontrolle</label><input type="email" id="f-email1" placeholder="info@nm-it-solutions.de"></div>
     <div class="form-group"><label>E-Mail POD</label><input type="email" id="f-email2" placeholder="accounting@nm-it-solutions.de"></div>
+    <div class="form-group"><label>Werkstatt E-Mail (bei Mängeln)</label><input type="email" id="f-werkstatt" placeholder="werkstatt@firma.de"></div>
     <div class="form-group" id="status-group">
       <label>Status</label>
       <select id="f-status">
@@ -840,7 +844,17 @@
     <div class="modal-handle"></div>
     <div class="modal-title">POD Details</div>
     <div id="modal-pod-content"></div>
-    <button class="btn btn-secondary mt-8" onclick="closeModal('modal-pod')">Schließen</button>
+    <div id="pod-forward-wrap" style="display:none;margin-top:12px">
+      <div class="form-group">
+        <label>Weiterleiten an E-Mail</label>
+        <input type="email" id="pod-forward-email" placeholder="empfaenger@firma.de">
+      </div>
+      <button class="btn btn-primary" onclick="forwardPOD()">📤 POD weiterleiten</button>
+    </div>
+    <div class="flex gap-8 mt-8">
+      <button class="btn btn-secondary" style="flex:1" onclick="togglePODForward()">📧 Weiterleiten</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="closeModal('modal-pod')">Schließen</button>
+    </div>
   </div>
 </div>
 
@@ -949,8 +963,8 @@ const DB = {
     { username: 'admin', password: 'NM-Admin2025!', name: 'Administrator' }
   ],
   drivers: [
-    { id: 'd1', vorname: 'Thomas', nachname: 'Müller', email: 'mueller@fleet.de', username: 'fahrer1', password: 'pass123', email1: 'info@nm-it-solutions.de', email2: 'accounting@nm-it-solutions.de', status: 'active' },
-    { id: 'd2', vorname: 'Anna', nachname: 'Schmidt', email: 'schmidt@fleet.de', username: 'fahrer2', password: 'pass123', email1: 'info@nm-it-solutions.de', email2: 'accounting@nm-it-solutions.de', status: 'active' },
+    { id: 'd1', vorname: 'Thomas', nachname: 'Müller', email: 'mueller@fleet.de', username: 'fahrer1', password: 'pass123', email1: 'info@nm-it-solutions.de', email2: 'accounting@nm-it-solutions.de', werkstatt: '', status: 'active' },
+    { id: 'd2', vorname: 'Anna', nachname: 'Schmidt', email: 'schmidt@fleet.de', username: 'fahrer2', password: 'pass123', email1: 'info@nm-it-solutions.de', email2: 'accounting@nm-it-solutions.de', werkstatt: '', status: 'active' },
     { id: 'd3', vorname: 'Klaus', nachname: 'Weber', email: 'weber@fleet.de', username: 'fahrer3', password: 'pass123', email1: 'info@nm-it-solutions.de', email2: 'accounting@nm-it-solutions.de', status: 'inactive' },
   ],
   checks: [],
@@ -1154,11 +1168,15 @@ function sendEmailWithPDF(toEmail, subject, message, type) {
   }
   // Always re-initialize before sending
   try { emailjs.init(emailSettings.pubkey); } catch(e) { console.log('init error', e); }
+  const msgFormatted = message
+    .replace(/\n/g, '<br>')
+    + '<br><br>──────────────────<br>'
+    + 'PDF herunterladen: <a href="https://demo.my-fleet.app">https://demo.my-fleet.app</a>';
   const params = {
     to_email: toEmail,
-    from_name: 'FleetCheck Pro – NM-IT Solutions GmbH',
+    from_name: 'my Fleet app – NM-IT Solutions GmbH',
     subject: subject,
-    message: message + '\n\nBitte loggen Sie sich in der App ein um das PDF herunterzuladen.'
+    message: msgFormatted
   };
   console.log('EmailJS send params:', {
     service: emailSettings.serviceId,
@@ -1186,7 +1204,7 @@ function testEmail() {
   }
   const testTo = emailSettings.from || 'ticket@nm-it-solutions.de';
   showToast('📤 Sende Test-E-Mail an ' + testTo + '...', '');
-  sendEmailWithPDF(testTo, 'FleetCheck Pro – Test', 'Dies ist eine Test-E-Mail von FleetCheck Pro. Wenn du diese E-Mail siehst, funktioniert der Versand korrekt!', 'test');
+  sendEmailWithPDF(testTo, 'my Fleet app – Test', 'Dies ist eine Test-E-Mail von my Fleet app. Wenn du diese E-Mail siehst, funktioniert der Versand korrekt!', 'test');
 }
 
 // ─── DRIVER MESSAGING ────────────────────────────────────────────
@@ -1295,6 +1313,56 @@ function renderDriverSentMsgs() {
     `;
     list.appendChild(card);
   });
+}
+
+// ─── POD FORWARD ─────────────────────────────────────────────────
+let currentPODForForward = null;
+
+function clearAllPODs() {
+  if (!confirm('Alle ' + DB.pods.length + ' PODs wirklich löschen?')) return;
+  DB.pods = [];
+  if (firebaseDB) firebaseDB.ref('pods').remove();
+  renderPODs();
+  refreshAdmin();
+  showToast('🗑 Alle PODs gelöscht', 'success');
+}
+
+function togglePODForward() {
+  const wrap = document.getElementById('pod-forward-wrap');
+  wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+}
+
+function forwardPOD() {
+  const email = document.getElementById('pod-forward-email').value.trim();
+  if (!email) { showToast('⚠️ Bitte E-Mail-Adresse eingeben', 'error'); return; }
+  if (!currentPODForForward) return;
+  const p = currentPODForForward;
+  const ocrText = p.ocrText || '';
+  const body = [
+    'Sehr geehrte Damen und Herren,',
+    '',
+    'Anbei die weitergeleiteten POD-Belege.',
+    '',
+    '━━━━━━━━━━━━━━━━━━━━━━━━',
+    'BELEG-INFORMATIONEN',
+    '━━━━━━━━━━━━━━━━━━━━━━━━',
+    'Fahrer: ' + p.driverName,
+    'Datum: ' + new Date(p.timestamp).toLocaleString('de-DE'),
+    'Anzahl Belege: ' + (p.photoCount || (p.photos ? p.photos.length : 0)),
+    p.remarks ? 'Bemerkung: ' + p.remarks : '',
+    '',
+    ocrText ? '━━━━━━━━━━━━━━━━━━━━━━━━' : '',
+    ocrText ? 'ERKANNTER TEXT (OCR)' : '',
+    ocrText ? '━━━━━━━━━━━━━━━━━━━━━━━━' : '',
+    ocrText || '',
+    '',
+    'Mit freundlichen Grüßen',
+    'my Fleet app – NM-IT Solutions GmbH'
+  ].filter(Boolean).join('\n');
+  sendEmailWithPDF(email, 'POD Weiterleitung – ' + p.driverName, body, 'forward');
+  showToast('📤 POD wird an ' + email + ' weitergeleitet...', 'success');
+  document.getElementById('pod-forward-wrap').style.display = 'none';
+  document.getElementById('pod-forward-email').value = '';
 }
 
 function renderFahrerMsgs() {
@@ -1598,7 +1666,7 @@ function submitPOD() {
           ocrSection || '',
           '',
           'Mit freundlichen Grüßen',
-          'FleetCheck Pro – NM-IT Solutions GmbH'
+          'my Fleet app – NM-IT Solutions GmbH'
         ].filter(l => l !== undefined && l !== null).join('\n');
 
         // Save OCR text to Firebase for search
@@ -1847,7 +1915,7 @@ function generateAbfahrtPDF(entry) {
     doc.rect(0, 287, pageW, 10, 'F');
     doc.setFontSize(7); doc.setFont('helvetica', 'normal');
     doc.setTextColor(255, 255, 255);
-    doc.text('FleetCheck Pro  |  Automatisch generierter Bericht  |  ' + new Date().toLocaleDateString('de-DE'), pageW / 2, 293, { align: 'center' });
+    doc.text('my Fleet app  |  Automatisch generierter Bericht  |  ' + new Date().toLocaleDateString('de-DE'), pageW / 2, 293, { align: 'center' });
 
     lastPDFBlob = doc.output('blob');
   lastPDFBase64 = doc.output('datauristring');
@@ -1902,7 +1970,7 @@ async function generatePODPDF(entry) {
         doc.setFillColor(26, 122, 191);
         doc.rect(0, 0, pageW, 8, 'F');
         doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(255,255,255);
-        doc.text('FleetCheck Pro  |  POD  |  ' + entry.driverName + '  |  Beleg ' + (i+1) + ' von ' + entry.photos.length, 5, 5.5);
+        doc.text('my Fleet app  |  POD  |  ' + entry.driverName + '  |  Beleg ' + (i+1) + ' von ' + entry.photos.length, 5, 5.5);
 
         // Full page image (with small margin)
         const margin = 8;
@@ -1924,7 +1992,7 @@ async function generatePODPDF(entry) {
     doc.setFillColor(26, 122, 191);
     doc.rect(0, 287, pageW, 10, 'F');
     doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(255,255,255);
-    doc.text('FleetCheck Pro  |  POD Bericht  |  ' + new Date().toLocaleDateString('de-DE') + '  |  NM-IT Solutions GmbH', pageW/2, 293, { align: 'center' });
+    doc.text('my Fleet app  |  POD Bericht  |  ' + new Date().toLocaleDateString('de-DE') + '  |  NM-IT Solutions GmbH', pageW/2, 293, { align: 'center' });
 
     lastPDFBlob = doc.output('blob');
     lastPDFBase64 = doc.output('datauristring');
@@ -1951,7 +2019,7 @@ function downloadLastPDF() {
   if (!lastPDFBlob) { showToast('⚠️ PDF nicht verfügbar', 'error'); return; }
   const url = URL.createObjectURL(lastPDFBlob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'FleetCheck_Bericht_' + Date.now() + '.pdf';
+  a.href = url; a.download = 'my Fleet app_Bericht_' + Date.now() + '.pdf';
   a.click(); URL.revokeObjectURL(url);
 }
 
@@ -2031,7 +2099,7 @@ function populateFilterDropdowns() {
 function openAddDriver() {
   document.getElementById('modal-fahrer-title').textContent = 'Fahrer anlegen';
   document.getElementById('modal-fahrer-id').value = '';
-  ['f-vorname','f-nachname','f-email','f-user','f-pass','f-email1','f-email2'].forEach(id => document.getElementById(id).value = '');
+  ['f-vorname','f-nachname','f-email','f-user','f-pass','f-email1','f-email2','f-werkstatt'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('f-status').value = 'active';
   document.getElementById('delete-driver-btn').classList.add('hidden');
   openModal('modal-fahrer');
@@ -2047,6 +2115,7 @@ function openEditDriver(d) {
   document.getElementById('f-pass').value = d.password;
   document.getElementById('f-email1').value = d.email1 || '';
   document.getElementById('f-email2').value = d.email2 || '';
+  document.getElementById('f-werkstatt').value = d.werkstatt || '';
   document.getElementById('f-status').value = d.status;
   document.getElementById('delete-driver-btn').classList.remove('hidden');
   openModal('modal-fahrer');
@@ -2062,6 +2131,7 @@ function saveDriver() {
     password: document.getElementById('f-pass').value,
     email1: document.getElementById('f-email1').value.trim(),
     email2: document.getElementById('f-email2').value.trim(),
+    werkstatt: document.getElementById('f-werkstatt').value.trim(),
     status: document.getElementById('f-status').value
   };
   if (!data.vorname || !data.nachname || !data.username || !data.password) {
@@ -2188,6 +2258,8 @@ function renderPODs() {
 }
 
 function openPODDetail(p) {
+  currentPODForForward = p;
+  document.getElementById('pod-forward-wrap').style.display = 'none';
   const cont = document.getElementById('modal-pod-content');
   const photoCount = p.photoCount || (p.photos ? p.photos.length : 0);
   const photos = p.photos || [];
