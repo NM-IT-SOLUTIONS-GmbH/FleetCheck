@@ -965,6 +965,15 @@ async function uploadAttachmentToStorage(file, folder) {
 
 function setupFirebaseListeners() {
   if (!firebaseDB || !currentUser) return;
+  // Push default drivers to Firebase if none exist yet
+  if (currentRole === 'admin') {
+    firebaseDB.ref('drivers').once('value', snap => {
+      if (!snap.val() || Object.keys(snap.val()).length === 0) {
+        DB.drivers.forEach(d => firebaseDB.ref('drivers/' + d.id).set(d));
+        console.log('Default drivers pushed to Firebase');
+      }
+    });
+  }
   // Listen for notifications for this user
   const notifsRef = firebaseDB.ref('notifications');
   notifsRef.on('value', snap => {
@@ -1148,6 +1157,42 @@ function goBack() {
 }
 
 // ─── EMAIL (Office 365 via EmailJS) ──────────────────────────────
+// ─── DRIVER STORAGE ──────────────────────────────────────────────
+function saveDriversToLocal() {
+  try { localStorage.setItem('fc_drivers', JSON.stringify(DB.drivers)); } catch(e) {}
+}
+
+function loadDriversFromLocal() {
+  try {
+    const stored = localStorage.getItem('fc_drivers');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed && parsed.length > 0) {
+        // Merge: keep local changes, add new drivers
+        parsed.forEach(d => {
+          const idx = DB.drivers.findIndex(e => e.id === d.id);
+          if (idx >= 0) DB.drivers[idx] = { ...DB.drivers[idx], ...d };
+          else DB.drivers.push(d);
+        });
+      }
+    }
+  } catch(e) {}
+}
+
+function setupDriversFirebaseSync() {
+  if (!firebaseDB) return;
+  firebaseDB.ref('drivers').on('value', snap => {
+    const data = snap.val() || {};
+    const fbDrivers = Object.values(data);
+    if (fbDrivers.length > 0) {
+      // Replace DB drivers with Firebase data (source of truth)
+      DB.drivers = fbDrivers;
+      saveDriversToLocal();
+      if (currentRole === 'admin') renderFahrerList(DB.drivers);
+    }
+  });
+}
+
 // ─── NOTIFICATION STORAGE (localStorage für geräteübergreifende Nachrichten) ───
 function saveNotificationsToStorage() {
   try { localStorage.setItem('fc_notifications', JSON.stringify(DB.notifications)); } catch(e) {}
@@ -1470,9 +1515,9 @@ function doLogin() {
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value.trim();
   const admin = DB.admins.find(a => a.username === u && a.password === p);
-  if (admin) { currentUser = admin; currentRole = 'admin'; goTo('screen-admin-home'); loadO365Settings(); initEmailJS(); setTimeout(initFirebase, 500); return; }
+  if (admin) { currentUser = admin; currentRole = 'admin'; goTo('screen-admin-home'); loadO365Settings(); initEmailJS(); loadDriversFromLocal(); setTimeout(() => { initFirebase(); setTimeout(setupDriversFirebaseSync, 1000); }, 500); return; }
   const driver = DB.drivers.find(d => d.username === u && d.password === p && d.status === 'active');
-  if (driver) { currentUser = driver; currentRole = 'driver'; goTo('screen-driver-home'); setTimeout(initFirebase, 500); return; }
+  if (driver) { currentUser = driver; currentRole = 'driver'; goTo('screen-driver-home'); loadDriversFromLocal(); setTimeout(initFirebase, 500); return; }
   showToast('❌ Benutzername oder Kennwort falsch', 'error');
 }
 
@@ -2235,14 +2280,22 @@ function saveDriver() {
   if (!data.vorname || !data.nachname || !data.username || !data.password) {
     showToast('⚠️ Pflichtfelder ausfüllen', 'error'); return;
   }
+  let driverId = id;
   if (id) {
     const idx = DB.drivers.findIndex(d => d.id === id);
     DB.drivers[idx] = { ...DB.drivers[idx], ...data };
     showToast('✅ Fahrer gespeichert', 'success');
   } else {
-    DB.drivers.push({ id: 'd' + Date.now(), ...data });
+    driverId = 'd' + Date.now();
+    DB.drivers.push({ id: driverId, ...data });
     showToast('✅ Fahrer angelegt', 'success');
   }
+  // Save to Firebase
+  if (firebaseDB) {
+    const driver = DB.drivers.find(d => d.id === driverId);
+    firebaseDB.ref('drivers/' + driverId).set(driver);
+  }
+  saveDriversToLocal();
   closeModal('modal-fahrer');
   refreshAdmin();
 }
@@ -2253,6 +2306,8 @@ function deleteDriver() {
   if (!confirm('Fahrer wirklich löschen?')) return;
   const idx = DB.drivers.findIndex(d => d.id === id);
   DB.drivers.splice(idx, 1);
+  if (firebaseDB) firebaseDB.ref('drivers/' + id).remove();
+  saveDriversToLocal();
   showToast('🗑 Fahrer gelöscht', 'success');
   closeModal('modal-fahrer');
   refreshAdmin();
