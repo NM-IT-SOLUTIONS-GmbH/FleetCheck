@@ -1574,23 +1574,32 @@ function submitPOD() {
       const recipient = currentUser.email2 || currentUser.email;
       setTimeout(() => {
         // Build smart email from OCR
-        const ocrSummary = compressed._ocrTexts ? compressed._ocrTexts.join(' ').substring(0, 300) : '';
+        const ocrTexts = compressed._ocrTexts || [];
+        // Build OCR section - each page separately
+        const ocrSection = ocrTexts.length > 0
+          ? ocrTexts.map((t, i) => 'Beleg ' + (i+1) + ':\n' + t.trim().substring(0, 400)).join('\n\n')
+          : '';
         const emailBody = [
           'Sehr geehrte Damen und Herren,',
           '',
-          'Fahrer ' + compressed.driverName + ' hat am ' + new Date(compressed.timestamp).toLocaleString('de-DE') + ' Ablieferbelege eingescannt und übermittelt.',
+          'Fahrer ' + compressed.driverName + ' hat am ' + new Date(compressed.timestamp).toLocaleString('de-DE') + ' Ablieferbelege übermittelt.',
           '',
+          '━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+          'BELEG-INFORMATIONEN',
+          '━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+          'Fahrer: ' + compressed.driverName,
+          'Datum: ' + new Date(compressed.timestamp).toLocaleString('de-DE'),
           'Anzahl Belege: ' + compressed.photos.length,
           compressed.remarks ? 'Bemerkung: ' + compressed.remarks : '',
           '',
-          ocrSummary ? 'Erkannte Informationen aus den Belegen:' : '',
-          ocrSummary ? ocrSummary : '',
-          '',
-          'Das vollständige PDF mit allen Belegen steht zum Download in der FleetCheck App bereit.',
+          ocrSection ? '━━━━━━━━━━━━━━━━━━━━━━━━━━━━' : '',
+          ocrSection ? 'ERKANNTER TEXT AUS BELEGEN (OCR)' : '',
+          ocrSection ? '━━━━━━━━━━━━━━━━━━━━━━━━━━━━' : '',
+          ocrSection || '',
           '',
           'Mit freundlichen Grüßen',
           'FleetCheck Pro – NM-IT Solutions GmbH'
-        ].filter(Boolean).join('\n');
+        ].filter(l => l !== undefined && l !== null).join('\n');
 
         // Save OCR text to Firebase for search
         if (firebaseDB && compressed._ocrTexts) {
@@ -2182,21 +2191,47 @@ function openPODDetail(p) {
   const cont = document.getElementById('modal-pod-content');
   const photoCount = p.photoCount || (p.photos ? p.photos.length : 0);
   const photos = p.photos || [];
+  // Check if photos are real base64 or placeholder strings
+  const validPhotos = photos.filter(ph => ph && ph.startsWith('data:'));
   cont.innerHTML = `
-    <p class="text-muted mb-8">Fahrer: <strong style="color:var(--text)">${p.driverName}</strong></p>
-    <p class="text-muted mb-8">Datum: <strong style="color:var(--text)">${new Date(p.timestamp).toLocaleString('de-DE')}</strong></p>
-    <p class="text-muted mb-8">Anzahl Belege: <strong style="color:var(--text)">${photoCount}</strong></p>
-    ${p.remarks ? `<p class="text-muted mb-8">Bemerkung: <strong style="color:var(--text)">${p.remarks}</strong></p>` : ''}
-    ${p.ocrText ? `<div style="background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:12px"><p style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">🔍 OCR-Text</p><p style="font-size:12px;color:var(--text);line-height:1.5">${p.ocrText.substring(0,300)}...</p></div>` : ''}
-    <div class="divider"></div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Eingescannte Belege:</p>
-    <div style="display:flex;flex-direction:column;gap:12px">
-      ${photos.length ? photos.map((ph, i) => `
-        <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden">
-          <div style="padding:6px 10px;font-size:11px;color:var(--muted);background:var(--surface2)">Beleg ${i+1}</div>
-          <img src="${ph}" style="width:100%;max-height:300px;object-fit:contain;display:block;background:#fff">
-        </div>`).join('') : `<p class="text-muted">Vorschau nicht verfügbar – Bilder wurden auf dem Gerät des Fahrers gespeichert.<br>PDF per E-Mail angefordert.</p>`}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <div style="background:var(--surface2);border-radius:10px;padding:10px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:2px">Fahrer</div>
+        <div style="font-weight:700;font-size:14px">${p.driverName}</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:10px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:2px">Datum</div>
+        <div style="font-weight:700;font-size:13px">${new Date(p.timestamp).toLocaleString('de-DE')}</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:10px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:2px">Anzahl Belege</div>
+        <div style="font-weight:700;font-size:14px">${photoCount}</div>
+      </div>
+      ${p.remarks ? `<div style="background:var(--surface2);border-radius:10px;padding:10px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:2px">Bemerkung</div>
+        <div style="font-size:13px">${p.remarks}</div>
+      </div>` : ''}
     </div>
+    ${p.ocrText ? `
+    <div style="background:rgba(26,122,191,0.08);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px">🔍 OCR – Erkannter Text aus Belegen</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.7;white-space:pre-wrap">${p.ocrText.substring(0, 600)}</div>
+    </div>` : ''}
+    <div class="divider"></div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Eingescannte Belege (${photoCount}):</p>
+    ${validPhotos.length > 0 ? `
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${validPhotos.map((ph, i) => `
+        <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden">
+          <div style="padding:5px 10px;font-size:11px;color:var(--muted);background:var(--surface2)">Beleg ${i+1}</div>
+          <img src="${ph}" style="width:100%;max-height:400px;object-fit:contain;display:block;background:#fff">
+        </div>`).join('')}
+    </div>` : `
+    <div style="background:var(--surface2);border-radius:10px;padding:16px;text-align:center">
+      <div style="font-size:24px;margin-bottom:8px">📄</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px">${photoCount} Beleg(e) übermittelt</div>
+      <div style="font-size:12px;color:var(--muted)">Vorschaubilder werden beim nächsten Upload gespeichert.<br>OCR-Text oben verfügbar.</div>
+    </div>`}
   `;
   openModal('modal-pod');
 }
