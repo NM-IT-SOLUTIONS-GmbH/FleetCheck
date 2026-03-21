@@ -709,11 +709,18 @@
 
     <!-- KONTROLLEN TAB -->
     <div id="tab-kontrollen" class="hidden">
-      <div class="flex gap-8 mb-8">
-        <select id="filter-check-fahrer" onchange="renderKontrollen()" style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px">
+      <div class="flex gap-8 mb-8" style="flex-wrap:wrap">
+        <select id="filter-check-fahrer" onchange="renderKontrollen()" style="flex:1;min-width:120px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px">
           <option value="">Alle Fahrer</option>
         </select>
-        <input type="date" id="filter-check-date" onchange="renderKontrollen()" style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px">
+        <input type="date" id="filter-check-date" onchange="renderKontrollen()" style="flex:1;min-width:120px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px">
+      </div>
+      <div class="flex gap-8 mb-8">
+        <select id="filter-check-maengel" onchange="renderKontrollen()" style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px">
+          <option value="">Alle Kontrollen</option>
+          <option value="maengel">⚠️ Nur mit Mängeln</option>
+          <option value="ok">✅ Nur ohne Mängel</option>
+        </select>
       </div>
       <div id="kontrollen-list"></div>
     </div>
@@ -1100,6 +1107,7 @@ function loadDriverMessagesFromStorage() {
 
 let emailSettings = JSON.parse(localStorage.getItem('o365settings') || JSON.stringify({
   from: 'ticket@nm-it-solutions.de',
+  maengelEmail: '',
   serviceId: 'service_ozle88h',
   templateId: 'template_rhlauh4',
   pubkey: 'stMuoBX-6IVsZeMaB'
@@ -1109,6 +1117,7 @@ function saveO365Settings() {
   emailSettings = {
     from: document.getElementById('o365-from').value.trim(),
     pass: document.getElementById('o365-pass').value,
+    maengelEmail: document.getElementById('o365-maengel-email').value.trim(),
     serviceId: document.getElementById('o365-service').value.trim(),
     templateId: document.getElementById('o365-template').value.trim(),
     pubkey: document.getElementById('o365-pubkey').value.trim()
@@ -1122,6 +1131,7 @@ function saveO365Settings() {
 function loadO365Settings() {
   if (emailSettings.from) document.getElementById('o365-from').value = emailSettings.from;
   if (emailSettings.pass) document.getElementById('o365-pass').value = emailSettings.pass;
+  if (emailSettings.maengelEmail) document.getElementById('o365-maengel-email').value = emailSettings.maengelEmail;
   if (emailSettings.serviceId) document.getElementById('o365-service').value = emailSettings.serviceId;
   if (emailSettings.templateId) document.getElementById('o365-template').value = emailSettings.templateId;
   if (emailSettings.pubkey) document.getElementById('o365-pubkey').value = emailSettings.pubkey;
@@ -1416,7 +1426,7 @@ function renderAbfahrtPhotos(idx) {
   });
 }
 
-function submitAbfahrt() {
+async function submitAbfahrt() {
   for (let i = 0; i < QUESTIONS.length; i++) {
     if (!abfahrtAnswers[i]) { showToast('⚠️ Bitte alle Fragen beantworten (Frage ' + (i+1) + ')', 'error'); return; }
   }
@@ -1435,7 +1445,31 @@ function submitAbfahrt() {
     offline: !isOnline
   };
   if (isOnline && firebaseDB) {
-    const entryForDB = { ...entry, answers: entry.answers.map(a => ({...a, photos: a.photos ? a.photos.map((_,i) => 'photo_' + i) : [], photoCount: a.photos ? a.photos.length : 0})), signature: entry.signature ? 'sig_present' : '' };
+    const makeThumbnail = (b64) => new Promise(res => {
+      if (!b64 || b64.length < 10) { res(''); return; }
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        const maxW = 100;
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        res(c.toDataURL('image/jpeg', 0.4));
+      };
+      img.onerror = () => res('');
+      img.src = b64;
+    });
+    // Create thumbnails for Mängel photos
+    const answersWithThumbs = await Promise.all(entry.answers.map(async a => {
+      if (a.photos && a.photos.length > 0) {
+        const thumbs = await Promise.all(a.photos.map(p => makeThumbnail(p)));
+        return { ...a, photos: thumbs, photoCount: a.photos.length };
+      }
+      return { ...a, photos: [], photoCount: 0 };
+    }));
+    const sigThumb = entry.signature ? await makeThumbnail(entry.signature) : '';
+    const entryForDB = { ...entry, answers: answersWithThumbs, signature: sigThumb };
     firebaseDB.ref('checks/' + entry.id).set(entryForDB);
     DB.checks.push(entry);
   } else if (isOnline) {
@@ -1497,9 +1531,25 @@ function submitPOD() {
   };
   // Save to Firebase or local
   if (isOnline && firebaseDB) {
-    // Store without large photo data in Firebase (too large), keep locally
-    const entryForDB = { ...entry, photos: entry.photos.map((p,i) => 'photo_' + i), photoCount: entry.photos.length };
-    firebaseDB.ref('pods/' + entry.id).set(entryForDB);
+    // Store thumbnails (very small) for admin preview
+    const makeThumbnail = (b64) => new Promise(res => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        const maxW = 120; 
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        res(c.toDataURL('image/jpeg', 0.4));
+      };
+      img.onerror = () => res('');
+      img.src = b64;
+    });
+    Promise.all(entry.photos.map(p => makeThumbnail(p))).then(thumbs => {
+      const entryForDB = { ...entry, photos: thumbs, photoCount: entry.photos.length, hasThumbs: true };
+      firebaseDB.ref('pods/' + entry.id).set(entryForDB);
+    });
     DB.pods.push(entry); // keep full version with photos locally
   } else if (isOnline) {
     DB.pods.push(entry);
@@ -1507,13 +1557,19 @@ function submitPOD() {
     saveOffline('pod', entry);
   }
   generatePODPDF(entry);
-  document.getElementById('success-title').textContent = '📄 POD hochgeladen!';
-  document.getElementById('success-icon').textContent = '📄';
-  document.getElementById('success-msg').textContent = '⏳ PDF wird erstellt...';
+  // Show success immediately - process in background
+  document.getElementById('success-title').textContent = '✅ Belege erfolgreich gesendet!';
+  document.getElementById('success-icon').textContent = '✅';
+  document.getElementById('success-msg').textContent = 'Ihre ' + entry.photos.length + ' Beleg(e) wurden übermittelt. PDF wird im Hintergrund erstellt und per E-Mail versendet.';
+  document.getElementById('success-pdf-btn-wrap').style.display = 'none';
   goTo('screen-success');
-  // Compress photos then generate PDF and send email
+  // Process PDF and email in background (non-blocking)
+  setTimeout(() => {
   compressEntry(entry).then(async compressed => {
     await generatePODPDF(compressed);
+    // Show download button once ready
+    const pdfBtn = document.getElementById('success-pdf-btn-wrap');
+    if (pdfBtn) { pdfBtn.style.display = 'block'; }
     if (isOnline) {
       const recipient = currentUser.email2 || currentUser.email;
       setTimeout(() => {
@@ -1549,6 +1605,7 @@ function submitPOD() {
       document.getElementById('success-msg').textContent = '📡 Offline gespeichert – wird automatisch synchronisiert.';
     }
   });
+  }, 100); // small delay so success screen shows first
 }
 
 // ─── SIGNATURE PAD ────────────────────────────────────────────────
@@ -1847,24 +1904,29 @@ async function generatePODPDF(entry) {
         catch(e) { try { doc.addImage(photo, 'PNG', marginL + 3, y + 7, contentW - 6, 80); } catch(e2) {} }
         y += 94;
 
-        // OCR text extraction
+        // OCR text extraction with timeout
         try {
-          const ocrResult = await Tesseract.recognize(photo, 'deu+eng', {});
+          const ocrPromise = Tesseract.recognize(photo, 'deu', {});
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('OCR timeout')), 8000));
+          const ocrResult = await Promise.race([ocrPromise, timeoutPromise]);
           const ocrText = ocrResult.data.text.trim();
-          if (ocrText) {
+          if (ocrText && ocrText.length > 5) {
             entry._ocrTexts = entry._ocrTexts || [];
             entry._ocrTexts.push(ocrText);
-            const shortText = ocrText.substring(0, 400);
-            doc.setFontSize(7.5); doc.setTextColor(80, 80, 80);
+            const shortText = ocrText.substring(0, 300);
+            doc.setFontSize(7); doc.setTextColor(80, 80, 80);
             doc.setFillColor(248, 249, 252);
-            const ocrLines = doc.splitTextToSize('Erkannter Text: ' + shortText, contentW - 4);
-            const ocrH = Math.min(ocrLines.length * 4 + 6, 40);
+            const ocrLines = doc.splitTextToSize('Text: ' + shortText, contentW - 4);
+            const ocrH = Math.min(ocrLines.length * 3.8 + 5, 35);
             checkY(ocrH + 4);
             doc.roundedRect(marginL, y, contentW, ocrH, 2, 2, 'F');
             doc.text(ocrLines.slice(0, 8), marginL + 2, y + 4);
             y += ocrH + 4;
           }
-        } catch(ocrErr) { console.warn('OCR error:', ocrErr); y += 2; }
+        } catch(ocrErr) {
+          console.warn('OCR skipped:', ocrErr.message);
+          // Continue without OCR text
+        }
       }
     } else {
       doc.setFontSize(10); doc.setTextColor(150, 150, 150);
@@ -2030,10 +2092,13 @@ function renderKontrollen() {
   list.innerHTML = '';
   const fDriver = document.getElementById('filter-check-fahrer').value;
   const fDate = document.getElementById('filter-check-date').value;
+  const fMaengel = document.getElementById('filter-check-maengel') ? document.getElementById('filter-check-maengel').value : '';
   let checks = [...DB.checks].reverse();
   if (fDriver) checks = checks.filter(c => c.driverId === fDriver);
-  if (fDate) checks = checks.filter(c => c.timestamp.startsWith(fDate));
-  if (checks.length === 0) { list.innerHTML = '<p class="text-muted text-center" style="padding:20px">Keine Einträge</p>'; return; }
+  if (fDate) checks = checks.filter(c => c.timestamp && c.timestamp.startsWith(fDate));
+  if (fMaengel === 'maengel') checks = checks.filter(c => c.answers && c.answers.some(a => a.answer === 'nein'));
+  if (fMaengel === 'ok') checks = checks.filter(c => c.answers && c.answers.every(a => a.answer !== 'nein'));
+  if (checks.length === 0) { list.innerHTML = '<p class="text-muted text-center" style="padding:20px">Keine Einträge gefunden</p>'; return; }
   checks.forEach(c => {
     const maengel = c.answers.filter(a => a.answer === 'nein').length;
     const card = document.createElement('div');
