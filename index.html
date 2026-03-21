@@ -1730,16 +1730,16 @@ function submitPOD() {
     if (pdfBtn) { pdfBtn.style.display = 'block'; }
     if (isOnline) {
       const recipient = currentUser.email2 || currentUser.email;
-      setTimeout(() => {
+      setTimeout(async () => {
         // Build smart email from OCR
         const ocrTexts = compressed._ocrTexts || [];
         const ocrSection = ocrTexts.length > 0
           ? ocrTexts.map((t, i) => 'Beleg ' + (i+1) + ':\n' + t.trim().substring(0, 400)).join('\n\n')
           : '';
 
-        // Upload POD PDF to Firebase Storage
+        // Upload POD PDF to Cloudinary
         let podPdfLink = 'https://demo.my-fleet.app';
-        if (lastPDFBlob && firebaseStorage) {
+        if (lastPDFBlob) {
           const podFilename = 'pod_' + compressed.driverName.replace(/\s/g,'_') + '_' + Date.now() + '.pdf';
           const uploadedUrl = await uploadPDFToStorage(lastPDFBlob, podFilename);
           if (uploadedUrl) podPdfLink = uploadedUrl;
