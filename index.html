@@ -1848,101 +1848,95 @@ function generateAbfahrtPDF(entry) {
 async function generatePODPDF(entry) {
   try {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    let y = 15;
-    const pageW = 210, marginL = 15, marginR = 195, contentW = 180;
+    // Each image = one full A4 page
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const pageW = 210, pageH = 297;
 
-    function drawPageBase() {
-      doc.setFillColor(59, 130, 246);
-      doc.rect(0, 0, pageW, 10, 'F');
-      doc.setFillColor(255, 255, 255);
-      doc.rect(0, 10, pageW, 287, 'F');
-    }
-    function checkY(needed) { if (y + needed > 275) { doc.addPage(); y = 15; drawPageBase(); } }
+    // Cover page
+    doc.setFillColor(26, 122, 191);
+    doc.rect(0, 0, pageW, 18, 'F');
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 18, pageW, pageH - 18, 'F');
 
-    drawPageBase();
-    y = 18;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(22);
+    doc.setTextColor(255, 255, 255);
+    doc.text('POD – Liefernachweis', 15, 12);
 
-    // Title
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal');
     doc.setTextColor(30, 30, 30);
-    doc.text('POD – Liefernachweis', marginL, y); y += 8;
-
-    // Meta box
+    let y = 30;
     doc.setFillColor(245, 247, 250); doc.setDrawColor(220, 220, 220);
-    doc.roundedRect(marginL, y, contentW, entry.remarks ? 23 : 16, 2, 2, 'FD');
-    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80);
-    doc.text('Fahrer:', marginL + 4, y + 6);
-    doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 30);
-    doc.text(entry.driverName, marginL + 22, y + 6);
-    doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80);
-    doc.text('Datum:', marginL + 4, y + 12);
-    doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 30);
-    doc.text(new Date(entry.timestamp).toLocaleString('de-DE'), marginL + 22, y + 12);
+    doc.roundedRect(12, y, pageW - 24, 28, 2, 2, 'FD');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(100, 100, 100);
+    doc.text('Fahrer:', 16, y + 7);
+    doc.text('Datum:', 16, y + 14);
+    doc.text('Anzahl Belege:', 16, y + 21);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(20, 20, 20);
+    doc.text(entry.driverName, 50, y + 7);
+    doc.text(new Date(entry.timestamp).toLocaleString('de-DE'), 50, y + 14);
+    doc.text(String(entry.photos ? entry.photos.length : 0), 50, y + 21);
+
     if (entry.remarks) {
-      doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80);
-      doc.text('Bemerkung:', marginL + 4, y + 19);
-      doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 30);
-      doc.text(entry.remarks, marginL + 30, y + 19);
+      y += 32;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(80, 80, 80);
+      doc.text('Bemerkung: ' + entry.remarks, 14, y);
     }
-    y += entry.remarks ? 29 : 22;
 
-    // Photos with OCR
+    // One full page per photo - clean scan look
     if (entry.photos && entry.photos.length > 0) {
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(30, 30, 30);
-      doc.text('Eingescannte Belege (' + entry.photos.length + '):', marginL, y); y += 5;
-
       for (let i = 0; i < entry.photos.length; i++) {
-        const photo = entry.photos[i];
-        checkY(120);
-        // Add image
-        doc.setFillColor(245, 247, 250); doc.setDrawColor(220, 220, 220);
-        doc.roundedRect(marginL, y, contentW, 90, 2, 2, 'FD');
-        doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(150, 150, 150);
-        doc.text('Beleg ' + (i + 1), marginL + 3, y + 5);
-        try { doc.addImage(photo, 'JPEG', marginL + 3, y + 7, contentW - 6, 80); }
-        catch(e) { try { doc.addImage(photo, 'PNG', marginL + 3, y + 7, contentW - 6, 80); } catch(e2) {} }
-        y += 94;
+        doc.addPage();
+        // White background
+        doc.setFillColor(255, 255, 255);
+        doc.rect(0, 0, pageW, pageH, 'F');
+        // Thin header
+        doc.setFillColor(26, 122, 191);
+        doc.rect(0, 0, pageW, 8, 'F');
+        doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(255,255,255);
+        doc.text('FleetCheck Pro  |  POD  |  ' + entry.driverName + '  |  Beleg ' + (i+1) + ' von ' + entry.photos.length, 5, 5.5);
 
-        // OCR text extraction with timeout
+        // Full page image (with small margin)
+        const margin = 8;
+        const imgW = pageW - margin * 2;
+        const imgH = pageH - 14 - margin;
         try {
-          const ocrPromise = Tesseract.recognize(photo, 'deu', {});
-          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('OCR timeout')), 8000));
-          const ocrResult = await Promise.race([ocrPromise, timeoutPromise]);
-          const ocrText = ocrResult.data.text.trim();
-          if (ocrText && ocrText.length > 5) {
-            entry._ocrTexts = entry._ocrTexts || [];
-            entry._ocrTexts.push(ocrText);
-            const shortText = ocrText.substring(0, 300);
-            doc.setFontSize(7); doc.setTextColor(80, 80, 80);
-            doc.setFillColor(248, 249, 252);
-            const ocrLines = doc.splitTextToSize('Text: ' + shortText, contentW - 4);
-            const ocrH = Math.min(ocrLines.length * 3.8 + 5, 35);
-            checkY(ocrH + 4);
-            doc.roundedRect(marginL, y, contentW, ocrH, 2, 2, 'F');
-            doc.text(ocrLines.slice(0, 8), marginL + 2, y + 4);
-            y += ocrH + 4;
+          doc.addImage(entry.photos[i], 'JPEG', margin, 10, imgW, imgH);
+        } catch(e) {
+          try { doc.addImage(entry.photos[i], 'PNG', margin, 10, imgW, imgH); } catch(e2) {
+            doc.setTextColor(150,150,150); doc.setFontSize(10);
+            doc.text('Bild konnte nicht geladen werden', pageW/2, pageH/2, { align: 'center' });
           }
-        } catch(ocrErr) {
-          console.warn('OCR skipped:', ocrErr.message);
-          // Continue without OCR text
         }
       }
-    } else {
-      doc.setFontSize(10); doc.setTextColor(150, 150, 150);
-      doc.text('Keine Bilder hochgeladen.', marginL, y); y += 8;
     }
 
-    // Footer
-    doc.setFillColor(59, 130, 246);
+    // Footer on cover page only
+    doc.setPage(1);
+    doc.setFillColor(26, 122, 191);
     doc.rect(0, 287, pageW, 10, 'F');
-    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(255, 255, 255);
-    doc.text('FleetCheck Pro  |  POD Bericht  |  ' + new Date().toLocaleDateString('de-DE'), pageW / 2, 293, { align: 'center' });
+    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(255,255,255);
+    doc.text('FleetCheck Pro  |  POD Bericht  |  ' + new Date().toLocaleDateString('de-DE') + '  |  NM-IT Solutions GmbH', pageW/2, 293, { align: 'center' });
 
     lastPDFBlob = doc.output('blob');
     lastPDFBase64 = doc.output('datauristring');
+
+    // Run OCR separately and store result (not in PDF)
+    if (entry.photos && entry.photos.length > 0) {
+      entry._ocrTexts = [];
+      for (let i = 0; i < entry.photos.length; i++) {
+        try {
+          const ocrPromise = Tesseract.recognize(entry.photos[i], 'deu', {});
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000));
+          const result = await Promise.race([ocrPromise, timeoutPromise]);
+          const text = result.data.text.trim();
+          if (text.length > 5) entry._ocrTexts.push(text);
+        } catch(e) { /* skip */ }
+      }
+    }
+
   } catch(e) { console.warn('PDF error', e); lastPDFBlob = null; lastPDFBase64 = null; }
 }
+
 
 function downloadLastPDF() {
   if (!lastPDFBlob) { showToast('⚠️ PDF nicht verfügbar', 'error'); return; }
@@ -2185,16 +2179,24 @@ function renderPODs() {
 }
 
 function openPODDetail(p) {
-  const content = document.getElementById('modal-pod-content');
-  content.innerHTML = `
+  const cont = document.getElementById('modal-pod-content');
+  const photoCount = p.photoCount || (p.photos ? p.photos.length : 0);
+  const photos = p.photos || [];
+  cont.innerHTML = `
     <p class="text-muted mb-8">Fahrer: <strong style="color:var(--text)">${p.driverName}</strong></p>
     <p class="text-muted mb-8">Datum: <strong style="color:var(--text)">${new Date(p.timestamp).toLocaleString('de-DE')}</strong></p>
+    <p class="text-muted mb-8">Anzahl Belege: <strong style="color:var(--text)">${photoCount}</strong></p>
     ${p.remarks ? `<p class="text-muted mb-8">Bemerkung: <strong style="color:var(--text)">${p.remarks}</strong></p>` : ''}
+    ${p.ocrText ? `<div style="background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:12px"><p style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">🔍 OCR-Text</p><p style="font-size:12px;color:var(--text);line-height:1.5">${p.ocrText.substring(0,300)}...</p></div>` : ''}
     <div class="divider"></div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px">
-      ${p.photos.length ? p.photos.map(ph => `<img src="${ph}" style="width:80px;height:80px;border-radius:10px;object-fit:cover;border:1px solid var(--border)">`).join('') : '<p class="text-muted">Keine Bilder</p>'}
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Eingescannte Belege:</p>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      ${photos.length ? photos.map((ph, i) => `
+        <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden">
+          <div style="padding:6px 10px;font-size:11px;color:var(--muted);background:var(--surface2)">Beleg ${i+1}</div>
+          <img src="${ph}" style="width:100%;max-height:300px;object-fit:contain;display:block;background:#fff">
+        </div>`).join('') : `<p class="text-muted">Vorschau nicht verfügbar – Bilder wurden auf dem Gerät des Fahrers gespeichert.<br>PDF per E-Mail angefordert.</p>`}
     </div>
-    ${p.signature ? `<div class="divider"></div><p style="font-size:12px;color:var(--muted)">Unterschrift:</p><img src="${p.signature}" style="max-width:200px;border-radius:8px;margin-top:4px;border:1px solid var(--border)">` : ''}
   `;
   openModal('modal-pod');
 }
