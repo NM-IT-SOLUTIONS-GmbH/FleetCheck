@@ -535,14 +535,21 @@
      SCREEN: ABFAHRTSKONTROLLE
 ═══════════════════════════════════════ -->
 <div class="screen" id="screen-abfahrt">
-  <div class="topbar">
-    <button class="btn btn-secondary btn-sm btn-icon" onclick="goBack()">←</button>
-    <div style="flex:1;margin-left:12px">
-      <div class="topbar-title">Abfahrtskontrolle</div>
+  <div class="topbar" style="flex-direction:column;padding-bottom:0;gap:0">
+    <div style="display:flex;align-items:center;width:100%;padding-bottom:10px">
+      <button class="btn btn-secondary btn-sm btn-icon" onclick="goBack()">←</button>
+      <div style="flex:1;margin-left:12px">
+        <div class="topbar-title">Abfahrtskontrolle</div>
+      </div>
+      <div id="abfahrt-counter" style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--accent);background:rgba(26,122,191,0.1);padding:4px 12px;border-radius:20px;white-space:nowrap">0 / 12</div>
+    </div>
+    <div style="width:100%;padding:0 0 10px 0">
+      <div class="progress-wrap" style="margin-bottom:0">
+        <div class="progress-fill" id="abfahrt-progress" style="width:0%"></div>
+      </div>
     </div>
   </div>
   <div class="page-content">
-    <div class="progress-wrap"><div class="progress-fill" id="abfahrt-progress" style="width:0%"></div></div>
     <div id="abfahrt-questions"></div>
 
     <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px">
@@ -1466,8 +1473,16 @@ function setAnswer(idx, val, btn) {
 }
 
 function updateAbfahrtProgress() {
-  const pct = (Object.keys(abfahrtAnswers).length / QUESTIONS.length) * 100;
+  const answered = Object.keys(abfahrtAnswers).length;
+  const total = QUESTIONS.length;
+  const pct = (answered / total) * 100;
   document.getElementById('abfahrt-progress').style.width = pct + '%';
+  const counter = document.getElementById('abfahrt-counter');
+  if (counter) {
+    counter.textContent = answered + ' / ' + total;
+    counter.style.color = answered === total ? 'var(--green)' : 'var(--accent)';
+    counter.style.background = answered === total ? 'rgba(30,158,87,0.12)' : 'rgba(26,122,191,0.1)';
+  }
 }
 
 function handleAbfahrtPhoto(event, idx) {
