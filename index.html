@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>my Fleet app</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -448,82 +447,7 @@
 
   input[type="file"] { display: none; }
   .offline-item { opacity: 0.6; }
-  .stat-card-new {
-  border-radius: 16px;
-  padding: 16px;
-  position: relative;
-  overflow: hidden;
-}
-.stat-card-new::before {
-  content: '';
-  position: absolute;
-  top: -20px; right: -20px;
-  width: 80px; height: 80px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 50%;
-}
-
-.admin-menu-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 10px;
-  background: var(--surface2);
-  border: 1.5px solid var(--border);
-  border-radius: 14px;
-  cursor: pointer;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  transition: all 0.2s;
-}
-.admin-menu-btn:hover { border-color: var(--accent); transform: translateY(-2px); }
-.admin-menu-btn.active { border-color: var(--accent); background: rgba(26,122,191,0.1); }
-.ambi {
-  width: 40px; height: 40px;
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
-}
-
-.quick-action-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 16px 10px;
-  background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: 14px;
-  cursor: pointer;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text);
-  transition: all 0.2s;
-}
-.quick-action-btn:hover { border-color: var(--accent); transform: translateY(-2px); }
-
-.settings-btn {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px;
-  background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: 14px;
-  cursor: pointer;
-  font-family: 'DM Sans', sans-serif;
-  color: var(--text);
-  text-align: left;
-  transition: all 0.2s;
-  width: 100%;
-}
-.settings-btn:hover { border-color: var(--accent); }
-
-.sync-badge {
+  .sync-badge {
     display: inline-flex; align-items: center; gap: 4px;
     background: rgba(231,76,60,0.15); border: 1px solid var(--red);
     color: var(--red); border-radius: 20px; font-size: 10px; font-weight: 700;
@@ -554,183 +478,7 @@
       <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
     </div>
     <button class="btn btn-primary" onclick="doLogin()">🔐 Anmelden</button>
-    <div style="margin-top:16px;padding:12px;background:var(--surface2);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.8;text-align:center">
-      © 2026 NM-IT Solutions GmbH<br>
-      <span style="font-size:10px;opacity:0.6">SuperAdmin: superadmin / NM-Super2025!</span>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════
-     SCREEN: SUPER ADMIN
-═══════════════════════════════════════ -->
-<div class="screen" id="screen-superadmin">
-  <div class="topbar">
-    <div>
-      <div class="topbar-title">⚡ Super Admin</div>
-      <div class="topbar-sub">NM-IT Solutions GmbH</div>
-    </div>
-    <button class="btn btn-secondary btn-sm" onclick="doLogout()">Abmelden</button>
-  </div>
-  <div class="page-content">
-    <!-- Stats -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
-      <div style="background:linear-gradient(135deg,#1a7abf,#1567a8);border-radius:16px;padding:16px">
-        <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-bottom:4px">Mandanten</div>
-        <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff" id="sa-stat-mandanten">0</div>
-      </div>
-      <div style="background:linear-gradient(135deg,#1e9e57,#17824a);border-radius:16px;padding:16px">
-        <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-bottom:4px">Aktive Admins</div>
-        <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff" id="sa-stat-admins">0</div>
-      </div>
-    </div>
-    <!-- Mandanten Liste -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700">Mandanten</div>
-      <button class="btn btn-primary btn-sm" onclick="openAddMandant()">+ Neu</button>
-    </div>
-    <div id="mandanten-list"></div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════
-     SCREEN: SUPERADMIN QUESTIONS EDITOR
-═══════════════════════════════════════ -->
-<div class="screen" id="screen-sa-questions">
-  <div class="topbar">
-    <button class="btn btn-secondary btn-sm btn-icon" onclick="goBack()">←</button>
-    <div style="flex:1;margin-left:12px">
-      <div class="topbar-title" id="sa-q-title">Fragen bearbeiten</div>
-      <div class="topbar-sub" id="sa-q-subtitle"></div>
-    </div>
-    <button class="btn btn-primary btn-sm" onclick="saveQuestions()">💾 Speichern</button>
-  </div>
-  <div class="page-content">
-    <div style="background:rgba(26,122,191,0.08);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--muted);line-height:1.5">
-      Hier können Sie die Prüffragen für die Abfahrtskontrolle dieses Mandanten anpassen. Jede Frage erscheint beim Fahrer mit den Antwortoptionen <strong style="color:var(--text)">Ja / In Ordnung</strong> und <strong style="color:var(--text)">Nein / Mängel</strong>.
-    </div>
-    <div id="questions-editor-list"></div>
-    <button class="btn btn-secondary mt-8" onclick="addQuestion()" style="margin-bottom:20px">+ Frage hinzufügen</button>
-    <button class="btn btn-secondary" onclick="resetQuestionsToDefault()" style="margin-bottom:20px;border-color:var(--red);color:var(--red)">↺ Standard-Fragen wiederherstellen</button>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════
-     SCREEN: FUHRPARK DASHBOARD
-═══════════════════════════════════════ -->
-<div class="screen" id="screen-fuhrpark">
-  <div class="topbar">
-    <div>
-      <div class="topbar-title">🚗 Fuhrpark</div>
-      <div class="topbar-sub" id="fuhrpark-sub">Fahrzeugverwaltung</div>
-    </div>
-    <div class="flex gap-8">
-      <button class="btn btn-secondary btn-sm" onclick="fuhrparkTab('uebersicht')" id="fp-tab-u" style="font-size:12px">📊</button>
-      <button class="btn btn-secondary btn-sm" onclick="fuhrparkTab('kalender')" id="fp-tab-k" style="font-size:12px">📅</button>
-      <button class="btn btn-secondary btn-sm" onclick="doLogout()">Abmelden</button>
-    </div>
-  </div>
-  <div class="page-content">
-    <!-- Übersicht Tab -->
-    <div id="fp-view-uebersicht">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
-        <div style="background:linear-gradient(135deg,#1a7abf,#1567a8);border-radius:14px;padding:14px">
-          <div style="font-size:10px;color:rgba(255,255,255,0.7)">Fahrzeuge gesamt</div>
-          <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:#fff" id="fp-stat-total">0</div>
-        </div>
-        <div style="background:linear-gradient(135deg,#d93025,#b52920);border-radius:14px;padding:14px">
-          <div style="font-size:10px;color:rgba(255,255,255,0.7)">Fällige Termine</div>
-          <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:#fff" id="fp-stat-faellig">0</div>
-        </div>
-      </div>
-      <!-- Fahrzeug Liste -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700">Fahrzeuge</div>
-        <button class="btn btn-primary btn-sm" onclick="openAddFahrzeug()">+ Neu</button>
-      </div>
-      <div id="fahrzeug-list"></div>
-    </div>
-    <!-- Kalender Tab -->
-    <div id="fp-view-kalender" style="display:none">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <button class="btn btn-secondary btn-sm btn-icon" onclick="prevMonth()">‹</button>
-        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700" id="fp-cal-title"></div>
-        <button class="btn btn-secondary btn-sm btn-icon" onclick="nextMonth()">›</button>
-      </div>
-      <div id="fp-calendar"></div>
-      <div style="margin-top:16px">
-        <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:10px">Termine dieses Monats</div>
-        <div id="fp-termine-list"></div>
-      </div>
-    </div>
-  </div>
-  <button class="fab" onclick="openAddTermin()" id="fp-fab">+</button>
-</div>
-
-<!-- ═══════════════════════════════════════
-     SCREEN: DRIVER DOCUMENTS
-═══════════════════════════════════════ -->
-<div class="screen" id="screen-driver-docs">
-  <div class="topbar">
-    <button class="btn btn-secondary btn-sm btn-icon" onclick="goBack()">←</button>
-    <div style="flex:1;margin-left:12px">
-      <div class="topbar-title">📋 Meine Dokumente</div>
-    </div>
-  </div>
-  <div class="page-content">
-    <!-- Führerschein -->
-    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div>
-          <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700">🪪 Führerschein</div>
-          <div id="fs-status-text" style="font-size:12px;color:var(--muted);margin-top:2px">Noch nicht hochgeladen</div>
-        </div>
-        <div id="fs-validity-badge" style="display:none;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700"></div>
-      </div>
-      <div id="fs-preview" style="margin-bottom:12px;display:none">
-        <img id="fs-img" style="width:100%;border-radius:10px;border:1px solid var(--border)">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-          <div style="background:var(--surface2);border-radius:8px;padding:8px">
-            <div style="font-size:10px;color:var(--muted)">Gültig bis</div>
-            <div style="font-weight:700;font-size:13px" id="fs-gueltig">-</div>
-          </div>
-          <div style="background:var(--surface2);border-radius:8px;padding:8px">
-            <div style="font-size:10px;color:var(--muted)">Zuletzt hochgeladen</div>
-            <div style="font-weight:700;font-size:13px" id="fs-uploaded">-</div>
-          </div>
-        </div>
-      </div>
-      <button class="btn btn-primary" onclick="captureDocument('fuehrerschein')">📷 Jetzt fotografieren</button>
-      <p style="font-size:11px;color:var(--muted);margin-top:8px">⚠️ Bitte fotografieren Sie Ihren Führerschein direkt mit der Kamera — kein Upload aus der Galerie.</p>
-    </div>
-
-    <!-- Fahrerkarte -->
-    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div>
-          <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700">💳 Fahrerkarte</div>
-          <div id="fk-status-text" style="font-size:12px;color:var(--muted);margin-top:2px">Noch nicht hochgeladen</div>
-        </div>
-        <div id="fk-validity-badge" style="display:none;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700"></div>
-      </div>
-      <div id="fk-preview" style="margin-bottom:12px;display:none">
-        <img id="fk-img" style="width:100%;border-radius:10px;border:1px solid var(--border)">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-          <div style="background:var(--surface2);border-radius:8px;padding:8px">
-            <div style="font-size:10px;color:var(--muted)">Gültig bis</div>
-            <div style="font-weight:700;font-size:13px" id="fk-gueltig">-</div>
-          </div>
-          <div style="background:var(--surface2);border-radius:8px;padding:8px">
-            <div style="font-size:10px;color:var(--muted)">Zuletzt hochgeladen</div>
-            <div style="font-weight:700;font-size:13px" id="fk-uploaded">-</div>
-          </div>
-        </div>
-      </div>
-      <button class="btn btn-primary" onclick="captureDocument('fahrerkarte')">📷 Jetzt fotografieren</button>
-    </div>
-
-    <!-- Hidden camera inputs (capture=camera forces camera, no gallery) -->
-    <input type="file" id="doc-capture-input" accept="image/*" capture="camera" onchange="handleDocCapture(event)" style="display:none">
+    <div class="demo-hint" style="font-size:11px;color:var(--muted);margin-top:16px">© 2026 NM-IT Solutions GmbH · Alle Rechte vorbehalten</div>
   </div>
 </div>
 
@@ -764,32 +512,21 @@
       </div>
     </div>
 
-    <div id="btn-abfahrt" class="big-btn" onclick="goTo('screen-abfahrt')" style="display:none">
+    <div class="big-btn" onclick="goTo('screen-abfahrt')">
       <div class="bb-icon orange">🚛</div>
       <div class="bb-title">Abfahrtskontrolle</div>
       <div class="bb-desc">Fahrzeugzustand prüfen und dokumentieren</div>
     </div>
-    <div id="btn-pod" class="big-btn" onclick="goTo('screen-pod')" style="display:none">
+    <div class="big-btn" onclick="goTo('screen-pod')">
       <div class="bb-icon blue">📄</div>
       <div class="bb-title">POD hochladen</div>
       <div class="bb-desc">Liefernachweise und Belege einscannen</div>
     </div>
-    <div id="btn-nachrichten" class="big-btn" onclick="goTo('screen-driver-messages')" style="display:none;position:relative">
+    <div class="big-btn" onclick="goTo('screen-driver-messages')" style="position:relative">
       <div class="notif-dot" id="msg-notif-dot"></div>
       <div class="bb-icon" style="background:rgba(46,204,113,0.15)">💬</div>
       <div class="bb-title">Nachrichten</div>
       <div class="bb-desc">Nachrichten empfangen und an Admin senden</div>
-    </div>
-    <div id="btn-fahrerdokumente" class="big-btn" onclick="goTo('screen-fahrerdokumente')" style="display:none">
-      <div class="bb-icon" style="background:rgba(155,89,182,0.15)">📋</div>
-      <div class="bb-title">Meine Dokumente</div>
-      <div class="bb-desc">Führerschein & Fahrerkarte verwalten</div>
-    </div>
-    <div class="big-btn" onclick="goTo('screen-driver-docs')" id="docs-btn" style="position:relative">
-      <div class="notif-dot" id="docs-notif-dot"></div>
-      <div class="bb-icon" style="background:rgba(155,89,182,0.15)">📋</div>
-      <div class="bb-title">Meine Dokumente</div>
-      <div class="bb-desc">Führerschein & Fahrerkarte verwalten</div>
     </div>
   </div>
 </div>
@@ -932,162 +669,44 @@
      SCREEN: ADMIN DASHBOARD
 ═══════════════════════════════════════ -->
 <div class="screen" id="screen-admin-home">
-
-  <!-- ═══ STICKY TOPBAR ═══ -->
-  <div class="topbar" style="padding:10px 16px;justify-content:space-between">
-    <div style="display:flex;align-items:center;gap:10px">
-      <div style="width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px">🚛</div>
-      <div>
-        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800">my Fleet app</div>
-        <div style="font-size:10px;color:var(--muted)">Admin Dashboard</div>
-      </div>
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Admin Dashboard</div>
+      <div class="topbar-sub">my Fleet app</div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <button onclick="toggleAdminMenu()" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px" id="admin-hamburger">☰</button>
-    </div>
+    <button class="btn btn-secondary btn-sm" onclick="openModal('modal-o365')">📧 E-Mail</button>
+    <button class="btn btn-secondary btn-sm" onclick="doLogout()">Abmelden</button>
   </div>
-
-  <!-- ═══ SLIDE-DOWN MENU ═══ -->
-  <div id="admin-menu-overlay" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.5)" onclick="closeAdminMenu()">
-    <div id="admin-menu-panel" style="background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px 20px;box-shadow:0 8px 32px rgba(0,0,0,0.3)" onclick="event.stopPropagation()">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800">Menü</div>
-        <button onclick="closeAdminMenu()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✕</button>
+  <div class="page-content">
+    <div class="stats-grid">
+      <div class="stat-card highlight">
+        <div class="stat-val" id="stat-fahrer">0</div>
+        <div class="stat-label">Aktive Fahrer</div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <button class="admin-menu-btn" onclick="adminNav('dashboard')">
-          <span class="ambi" style="background:rgba(26,122,191,0.15);color:var(--accent)">📊</span>
-          <span>Dashboard</span>
-        </button>
-        <button class="admin-menu-btn" onclick="adminNav('fahrer')">
-          <span class="ambi" style="background:rgba(46,158,87,0.15);color:var(--green)">👥</span>
-          <span>Fahrer</span>
-        </button>
-        <button class="admin-menu-btn" id="menu-btn-kontrollen" onclick="adminNav('kontrollen')" style="display:none">
-          <span class="ambi" style="background:rgba(245,166,35,0.15);color:#e8891a">📋</span>
-          <span>Kontrollen</span>
-        </button>
-        <button class="admin-menu-btn" id="menu-btn-pods" onclick="adminNav('pods')" style="display:none">
-          <span class="ambi" style="background:rgba(59,130,246,0.15);color:var(--blue)">📄</span>
-          <span>PODs</span>
-        </button>
-        <button class="admin-menu-btn" id="menu-btn-nachrichten" onclick="adminNav('nachrichten')" style="display:none">
-          <span class="ambi" style="background:rgba(155,89,182,0.15);color:#9b59b6">📨</span>
-          <span>Nachrichten</span>
-        </button>
-        <button class="admin-menu-btn" id="menu-btn-fahrermsgs" onclick="adminNav('fahrermsgs')" style="display:none">
-          <span class="ambi" style="background:rgba(231,76,60,0.15);color:var(--red)">💬</span>
-          <span>Eingang</span>
-        </button>
-        <button class="admin-menu-btn" id="menu-btn-fuhrpark" onclick="adminNav('fuhrpark')" style="display:none">
-          <span class="ambi" style="background:rgba(30,158,87,0.15);color:var(--green)">🚗</span>
-          <span>Fuhrpark</span>
-        </button>
-        <button class="admin-menu-btn" onclick="adminNav('einstellungen')">
-          <span class="ambi" style="background:rgba(100,100,100,0.15);color:var(--muted)">⚙️</span>
-          <span>Einstellungen</span>
-        </button>
-        <button class="admin-menu-btn" onclick="closeAdminMenu();doLogout()" style="border-color:rgba(231,76,60,0.3)">
-          <span class="ambi" style="background:rgba(231,76,60,0.1);color:var(--red)">🚪</span>
-          <span style="color:var(--red)">Abmelden</span>
-        </button>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-checks">0</div>
+        <div class="stat-label">Kontrollen heute</div>
       </div>
-    </div>
-  </div>
-
-  <div class="page-content" id="admin-page-content">
-
-    <!-- ═══ BREADCRUMB ═══ -->
-    <div id="admin-breadcrumb" style="display:flex;align-items:center;gap:6px;margin-bottom:16px;font-size:12px;color:var(--muted)">
-      <span style="cursor:pointer;color:var(--accent)" onclick="adminNav('dashboard')">Dashboard</span>
-      <span id="admin-breadcrumb-sub" style="display:none"> › <span id="admin-breadcrumb-text"></span></span>
-    </div>
-
-    <!-- ═══ DASHBOARD VIEW ═══ -->
-    <div id="admin-view-dashboard">
-      <!-- Stats Grid -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
-        <div class="stat-card-new" style="background:linear-gradient(135deg,#1a7abf,#1567a8);cursor:pointer" onclick="adminNav('fahrer')">
-          <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-bottom:4px">Aktive Fahrer</div>
-          <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff" id="stat-fahrer">0</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px">→ Verwalten</div>
-        </div>
-        <div class="stat-card-new" style="background:linear-gradient(135deg,#1e9e57,#17824a);cursor:pointer" onclick="adminNav('kontrollen')">
-          <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-bottom:4px">Kontrollen heute</div>
-          <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff" id="stat-checks">0</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px">→ Anzeigen</div>
-        </div>
-        <div class="stat-card-new" style="background:linear-gradient(135deg,#3b82f6,#2563eb);cursor:pointer" onclick="adminNav('pods')">
-          <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-bottom:4px">PODs gesamt</div>
-          <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff" id="stat-pods">0</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px">→ Belege</div>
-        </div>
-        <div class="stat-card-new" style="background:linear-gradient(135deg,#e8891a,#d97706);cursor:pointer" onclick="adminNav('kontrollen')">
-          <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-bottom:4px">Offene Mängel</div>
-          <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff" id="stat-maengel">0</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px">→ Prüfen</div>
-        </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-pods">0</div>
+        <div class="stat-label">PODs gesamt</div>
       </div>
-
-      <!-- Donut Charts Row -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center">
-          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px">PODs</div>
-          <canvas id="chart-pod-status" height="120"></canvas>
-        </div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center">
-          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px">Kontrollen</div>
-          <canvas id="chart-check-status" height="120"></canvas>
-        </div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center">
-          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px">Nachrichten</div>
-          <canvas id="chart-msg-status" height="120"></canvas>
-        </div>
-      </div>
-
-      <!-- Weekly Bar Chart -->
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px">
-        <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:12px">📊 Aktivität diese Woche</div>
-        <canvas id="chart-weekly" height="120"></canvas>
-      </div>
-
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px">
-        <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:12px">🚛 Fahrer-Aktivität</div>
-        <div id="driver-activity-list"></div>
-      </div>
-
-      <!-- Quick Actions -->
-      <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:12px">Schnellzugriff</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
-        <button class="quick-action-btn" onclick="adminNav('fahrer');openAddDriver()">
-          <span style="font-size:22px">➕</span>
-          <span>Fahrer anlegen</span>
-        </button>
-        <button class="quick-action-btn" id="qa-nachrichten" onclick="adminNav('nachrichten')" style="display:none">
-          <span style="font-size:22px">📨</span>
-          <span>Nachricht senden</span>
-        </button>
-        <button class="quick-action-btn" id="qa-kontrollen" onclick="adminNav('kontrollen')" style="display:none">
-          <span style="font-size:22px">📋</span>
-          <span>Letzte Kontrollen</span>
-        </button>
-        <button class="quick-action-btn" id="qa-pods" onclick="adminNav('pods')" style="display:none">
-          <span style="font-size:22px">📄</span>
-          <span>PODs</span>
-        </button>
-        <button class="quick-action-btn" id="qa-fuhrpark" onclick="adminNav('fuhrpark')" style="display:none">
-          <span style="font-size:22px">🚗</span>
-          <span>Fuhrpark</span>
-        </button>
-        <button class="quick-action-btn" onclick="openModal('modal-o365')">
-          <span style="font-size:22px">⚙️</span>
-          <span>E-Mail Setup</span>
-        </button>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-maengel">0</div>
+        <div class="stat-label">Offene Mängel</div>
       </div>
     </div>
 
-    <!-- ═══ FAHRER VIEW ═══ -->
-    <div id="admin-view-fahrer" style="display:none">
+    <div class="tabs" id="admin-tabs">
+      <button class="tab active" onclick="adminTab('fahrer')">👥 Fahrer</button>
+      <button class="tab" onclick="adminTab('kontrollen')">📋 Kontrollen</button>
+      <button class="tab" onclick="adminTab('pods')">📄 PODs</button>
+      <button class="tab" onclick="adminTab('nachrichten')">🔔 Senden</button>
+      <button class="tab" onclick="adminTab('fahrermsgs')">💬 Eingang</button>
+    </div>
+
+    <!-- FAHRER TAB -->
+    <div id="tab-fahrer">
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
         <input type="text" placeholder="Fahrer suchen..." oninput="filterFahrer(this.value)" style="padding-left:40px">
@@ -1095,8 +714,8 @@
       <div id="fahrer-list"></div>
     </div>
 
-    <!-- ═══ KONTROLLEN VIEW ═══ -->
-    <div id="admin-view-kontrollen" style="display:none">
+    <!-- KONTROLLEN TAB -->
+    <div id="tab-kontrollen" class="hidden">
       <div class="flex gap-8 mb-8" style="flex-wrap:wrap">
         <select id="filter-check-fahrer" onchange="renderKontrollen()" style="flex:1;min-width:120px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px">
           <option value="">Alle Fahrer</option>
@@ -1113,9 +732,9 @@
       <div id="kontrollen-list"></div>
     </div>
 
-    <!-- ═══ PODS VIEW ═══ -->
-    <div id="admin-view-pods" style="display:none">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+    <!-- PODS TAB -->
+    <div id="tab-pods" class="hidden">
+      <div class="flex gap-8 mb-8" style="justify-content:flex-end">
         <button class="btn btn-danger btn-sm" onclick="clearAllPODs()" style="font-size:12px">🗑 Alle PODs löschen</button>
       </div>
       <div class="flex gap-8 mb-8" style="flex-wrap:wrap">
@@ -1126,15 +745,15 @@
       </div>
       <div class="search-wrap mb-8">
         <span class="search-icon">🔍</span>
-        <input type="text" id="filter-pod-search" placeholder="Suche nach OCR-Text, Kunde, Lieferschein..." oninput="renderPODs()" style="padding-left:40px;width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:12px 12px 12px 40px;color:var(--text);font-size:13px">
+        <input type="text" id="filter-pod-search" placeholder="Suche nach Lieferschein, Kunde, Text..." oninput="renderPODs()" style="padding-left:40px;width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:12px 12px 12px 40px;color:var(--text);font-size:13px">
       </div>
       <div id="pods-list"></div>
     </div>
 
-    <!-- ═══ NACHRICHTEN VIEW ═══ -->
-    <div id="admin-view-nachrichten" style="display:none">
+    <!-- NACHRICHTEN TAB -->
+    <div id="tab-nachrichten" class="hidden">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:16px">
-        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:12px">📨 Neue Nachricht</div>
+        <div class="section-title mb-8">Neue Nachricht senden</div>
         <div class="form-group">
           <label>Empfänger</label>
           <select id="notif-recipient" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-size:14px">
@@ -1143,7 +762,7 @@
         </div>
         <div class="form-group">
           <label>Nachricht</label>
-          <textarea id="notif-message" placeholder="z.B. Routenänderung auf A3..."></textarea>
+          <textarea id="notif-message" placeholder="z.B. Routenänderung auf A3, bitte über A61 fahren..."></textarea>
         </div>
         <div class="form-group">
           <label>Anhang (PDF oder Bild, optional)</label>
@@ -1155,63 +774,19 @@
         </div>
         <button class="btn btn-primary" onclick="sendNotification()">📨 Senden</button>
       </div>
-      <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:8px">Gesendete Nachrichten</div>
+      <div class="section-title mb-8">Gesendete Nachrichten</div>
       <div id="sent-notifs-list"></div>
     </div>
-
-    <!-- ═══ FUHRPARK VIEW ═══ -->
-    <div id="admin-view-fuhrpark" style="display:none">
-      <div style="text-align:center;padding:40px 20px;color:var(--muted)">
-        <div style="font-size:48px;margin-bottom:12px">🚗</div>
-        <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:8px">Fuhrparkverwaltung</div>
-        <div style="font-size:13px">Kommt in der nächsten Version</div>
-      </div>
-    </div>
-
-    <!-- ═══ EINGANG VIEW ═══ -->
-    <div id="admin-view-fahrermsgs" style="display:none">
-      <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:8px">💬 Nachrichten von Fahrern</div>
+    <!-- FAHRERMSGS TAB -->
+    <div id="tab-fahrermsgs" class="hidden">
+      <div class="section-title mb-8">Nachrichten von Fahrern</div>
       <div id="fahrer-msgs-list"></div>
     </div>
-
-    <!-- ═══ EINSTELLUNGEN VIEW ═══ -->
-    <div id="admin-view-einstellungen" style="display:none">
-      <div style="display:grid;gap:12px">
-        <button class="settings-btn" onclick="openModal('modal-o365')">
-          <span style="font-size:24px">📧</span>
-          <div>
-            <div style="font-weight:700;font-size:14px">E-Mail Einstellungen</div>
-            <div style="font-size:12px;color:var(--muted)">EmailJS, Cloudinary, Mängel-Mail</div>
-          </div>
-          <span style="color:var(--muted);margin-left:auto">›</span>
-        </button>
-        <button class="settings-btn" onclick="adminNav('fahrer')">
-          <span style="font-size:24px">👥</span>
-          <div>
-            <div style="font-weight:700;font-size:14px">Fahrerverwaltung</div>
-            <div style="font-size:12px;color:var(--muted)">Anlegen, bearbeiten, deaktivieren</div>
-          </div>
-          <span style="color:var(--muted);margin-left:auto">›</span>
-        </button>
-        <button class="settings-btn" onclick="doLogout()" style="border-color:rgba(231,76,60,0.3)">
-          <span style="font-size:24px">🚪</span>
-          <div>
-            <div style="font-weight:700;font-size:14px;color:var(--red)">Abmelden</div>
-            <div style="font-size:12px;color:var(--muted)">Admin-Session beenden</div>
-          </div>
-          <span style="color:var(--muted);margin-left:auto">›</span>
-        </button>
-      </div>
-    </div>
-
   </div>
 
-  <!-- FAB: Add driver (only in fahrer view) -->
-  <button class="fab" id="fab-add" onclick="openAddDriver()" style="display:none">+</button>
+  <!-- FAB: Add driver -->
+  <button class="fab" id="fab-add" onclick="openAddDriver()">+</button>
 </div>
-
-
-
 
 <!-- ─── MODAL: O365 EINSTELLUNGEN ─── -->
 <div class="modal-overlay" id="modal-o365">
@@ -1244,114 +819,6 @@
     <button class="btn btn-primary" onclick="saveO365Settings()">💾 Speichern</button>
     <button class="btn btn-secondary mt-8" onclick="testEmail()">📤 Test-E-Mail senden</button>
     <button class="btn btn-secondary mt-8" onclick="closeModal('modal-o365')">Abbrechen</button>
-  </div>
-</div>
-
-<!-- ─── MODAL: MANDANT ─── -->
-<div class="modal-overlay" id="modal-mandant">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="modal-mandant-title">Mandant anlegen</div>
-    <input type="hidden" id="modal-mandant-id">
-    <div id="m-id-display" style="display:none;background:var(--surface2);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:var(--muted)">
-      Mandant-ID: <strong id="m-id-text" style="color:var(--accent);font-family:monospace"></strong>
-    </div>
-
-    <div class="form-group"><label>Firmenname *</label><input type="text" id="m-name" placeholder="Musterfirma GmbH"></div>
-    <div class="form-group"><label>Adresse</label><input type="text" id="m-adresse" placeholder="Musterstraße 1, 45127 Essen"></div>
-    <div class="form-group"><label>E-Mail</label><input type="email" id="m-email" placeholder="info@firma.de"></div>
-    <div class="form-group"><label>Telefon</label><input type="tel" id="m-tel" placeholder="+49 201 123456"></div>
-    <div class="form-group">
-      <label>Logo (PNG/JPG)</label>
-      <div id="m-logo-preview" style="margin-bottom:8px"></div>
-      <label style="display:flex;align-items:center;gap:8px;padding:10px;background:var(--surface2);border:1.5px dashed var(--border);border-radius:10px;cursor:pointer;font-size:13px;color:var(--muted)">
-        🖼️ Logo hochladen
-        <input type="file" id="m-logo-file" accept="image/*" onchange="previewMandantLogo(event)" style="display:none">
-      </label>
-    </div>
-
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px">
-      <div style="font-size:12px;font-weight:700;margin-bottom:8px">🔐 Admin-Zugangsdaten</div>
-      <div class="form-group"><label>Admin Benutzername *</label><input type="text" id="m-admin-user" placeholder="admin.firma"></div>
-      <div class="form-group" style="margin-bottom:0"><label>Admin Passwort *</label><input type="password" id="m-admin-pass" placeholder="••••••••"></div>
-    </div>
-
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px">
-      <div style="font-size:12px;font-weight:700;margin-bottom:8px">📋 Lizenz & Laufzeit</div>
-      <div class="form-group">
-        <label>Max. Fahrer (Lizenzen)</label>
-        <input type="number" id="m-max-fahrer" placeholder="5" min="1" max="999" value="5">
-      </div>
-      <div class="form-group" style="margin-bottom:0">
-        <label>Gültig bis</label>
-        <input type="date" id="m-gueltig-bis">
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>Status</label>
-      <select id="m-status" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-size:14px">
-        <option value="true">✅ Aktiv</option>
-        <option value="false">⛔ Deaktiviert</option>
-      </select>
-    </div>
-
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
-      <div style="font-size:12px;font-weight:700;margin-bottom:12px">📦 Module & Funktionen</div>
-      <div style="display:grid;gap:10px">
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;transition:border-color 0.2s" id="module-label-abfahrt">
-          <input type="checkbox" id="m-mod-abfahrt" onchange="highlightModule('abfahrt',this.checked)" style="width:18px;height:18px;accent-color:var(--accent)">
-          <span style="font-size:22px">🚛</span>
-          <div>
-            <div style="font-weight:700;font-size:13px">Modul 1 – Abfahrtskontrolle</div>
-            <div style="font-size:11px;color:var(--muted)">Tägliche Fahrzeugprüfung mit Fragebogen, Fotos, Unterschrift</div>
-          </div>
-        </label>
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;transition:border-color 0.2s" id="module-label-pod">
-          <input type="checkbox" id="m-mod-pod" onchange="highlightModule('pod',this.checked)" style="width:18px;height:18px;accent-color:var(--accent)">
-          <span style="font-size:22px">📄</span>
-          <div>
-            <div style="font-weight:700;font-size:13px">Modul 2 – POD / Lieferbelege</div>
-            <div style="font-size:11px;color:var(--muted)">Lieferscheine einscannen, OCR-Erkennung, PDF-Versand</div>
-          </div>
-        </label>
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;transition:border-color 0.2s" id="module-label-nachrichten">
-          <input type="checkbox" id="m-mod-nachrichten" onchange="highlightModule('nachrichten',this.checked)" style="width:18px;height:18px;accent-color:var(--accent)">
-          <span style="font-size:22px">💬</span>
-          <div>
-            <div style="font-weight:700;font-size:13px">Modul 3 – Nachrichten</div>
-            <div style="font-size:11px;color:var(--muted)">Admin ↔ Fahrer Kommunikation, Anhänge, Benachrichtigungen</div>
-          </div>
-        </label>
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;transition:border-color 0.2s" id="module-label-fuhrpark">
-          <input type="checkbox" id="m-mod-fuhrpark" onchange="highlightModule('fuhrpark',this.checked)" style="width:18px;height:18px;accent-color:var(--accent)">
-          <span style="font-size:22px">🚗</span>
-          <div>
-            <div style="font-weight:700;font-size:13px">Modul 4 – Fuhrparkverwaltung</div>
-            <div style="font-size:11px;color:var(--muted)">TÜV, ASP, Wartungstermine, Kalender, Wochen-/Monatsübersicht</div>
-          </div>
-        </label>
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;transition:border-color 0.2s" id="module-label-fahrerdokumente">
-          <input type="checkbox" id="m-mod-fahrerdokumente" onchange="highlightModule('fahrerdokumente',this.checked)" style="width:18px;height:18px;accent-color:var(--accent)">
-          <span style="font-size:22px">📋</span>
-          <div>
-            <div style="font-weight:700;font-size:13px">Modul 5 – Fahrerdokumente</div>
-            <div style="font-size:11px;color:var(--muted)">Führerschein, Fahrerkarte, Ablaufdatum, Prüfintervall, Kamerafoto</div>
-          </div>
-        </label>
-      </div>
-
-      <!-- Questions config (shown when Modul 1 active) -->
-      <div id="m-questions-section" style="display:none;margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
-        <div style="font-size:12px;font-weight:700;margin-bottom:8px">📝 Fragen für Abfahrtskontrolle</div>
-        <div id="m-questions-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
-        <button class="btn btn-secondary btn-sm" onclick="addMandantQuestion()" style="width:100%">+ Frage hinzufügen</button>
-      </div>
-    </div>
-
-    <button class="btn btn-primary" onclick="saveMandant()">💾 Speichern</button>
-    <button class="btn btn-secondary mt-8" onclick="closeModal('modal-mandant')">Abbrechen</button>
-    <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px">Mandanten können nicht gelöscht werden — nur deaktiviert.</p>
   </div>
 </div>
 
@@ -1388,10 +855,6 @@
     <div class="modal-handle"></div>
     <div class="modal-title">Abfahrtskontrolle</div>
     <div id="modal-kontrolle-content"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
-      <button class="btn btn-green btn-sm" onclick="setCheckStatus('bearbeitet')">✅ Bearbeitet</button>
-      <button class="btn btn-secondary btn-sm" onclick="setCheckStatus('offen')">🔄 Offen</button>
-    </div>
     <button class="btn btn-secondary mt-8" onclick="closeModal('modal-kontrolle')">Schließen</button>
   </div>
 </div>
@@ -1409,65 +872,10 @@
       </div>
       <button class="btn btn-primary" onclick="forwardPOD()">📤 POD weiterleiten</button>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
-      <button class="btn btn-green btn-sm" onclick="setPODStatus('bearbeitet')">✅ Bearbeitet</button>
-      <button class="btn btn-secondary btn-sm" onclick="setPODStatus('offen')">🔄 Offen</button>
-      <button class="btn btn-secondary btn-sm" onclick="togglePODForward()">📧 Weiterleiten</button>
-      <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-pod')">Schließen</button>
+    <div class="flex gap-8 mt-8">
+      <button class="btn btn-secondary" style="flex:1" onclick="togglePODForward()">📧 Weiterleiten</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="closeModal('modal-pod')">Schließen</button>
     </div>
-  </div>
-</div>
-
-<!-- ─── MODAL: FAHRZEUG ─── -->
-<div class="modal-overlay" id="modal-fahrzeug">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="modal-fahrzeug-title">Fahrzeug anlegen</div>
-    <input type="hidden" id="fz-id">
-    <div class="form-group"><label>Kennzeichen *</label><input type="text" id="fz-kennzeichen" placeholder="E-NM 1234" style="text-transform:uppercase"></div>
-    <div class="form-group"><label>Hersteller / Modell</label><input type="text" id="fz-modell" placeholder="Mercedes Actros"></div>
-    <div class="form-group"><label>Fahrzeugtyp</label>
-      <select id="fz-typ" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-size:14px">
-        <option>Kühlfahrzeug</option><option>Tiefkühlfahrzeug</option><option>Transporter</option><option>LKW</option><option>Sonstiges</option>
-      </select>
-    </div>
-    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin:12px 0 8px">📋 Termine & Fristen</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div class="form-group"><label>TÜV fällig</label><input type="date" id="fz-tuev"></div>
-      <div class="form-group"><label>ASP fällig</label><input type="date" id="fz-asp"></div>
-      <div class="form-group"><label>UVV fällig</label><input type="date" id="fz-uvv"></div>
-      <div class="form-group"><label>Versicherung</label><input type="date" id="fz-versicherung"></div>
-    </div>
-    <div id="fz-extra-fields"></div>
-    <button class="btn btn-secondary btn-sm mt-8" onclick="addExtraFahrzeugField()" style="font-size:12px">+ Weiteres Feld hinzufügen</button>
-    <button class="btn btn-primary mt-8" onclick="saveFahrzeug()">💾 Speichern</button>
-    <button class="btn btn-danger mt-8" id="fz-delete-btn" onclick="deleteFahrzeug()" style="display:none">🗑 Löschen</button>
-    <button class="btn btn-secondary mt-8" onclick="closeModal('modal-fahrzeug')">Abbrechen</button>
-  </div>
-</div>
-
-<!-- ─── MODAL: TERMIN ─── -->
-<div class="modal-overlay" id="modal-termin">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Termin eintragen</div>
-    <input type="hidden" id="termin-id">
-    <div class="form-group"><label>Fahrzeug *</label>
-      <select id="termin-fahrzeug" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-size:14px">
-        <option value="">-- Fahrzeug wählen --</option>
-      </select>
-    </div>
-    <div class="form-group"><label>Termin-Typ *</label>
-      <select id="termin-typ" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-size:14px">
-        <option>TÜV</option><option>ASP</option><option>UVV</option><option>Versicherung</option><option>Wartung</option><option>Sonstiges</option>
-      </select>
-    </div>
-    <div class="form-group"><label>Datum *</label><input type="date" id="termin-datum"></div>
-    <div class="form-group"><label>Uhrzeit</label><input type="time" id="termin-uhrzeit"></div>
-    <div class="form-group"><label>Bemerkung</label><textarea id="termin-bemerkung" placeholder="z.B. Hauptuntersuchung, Werkstatt Müller..."></textarea></div>
-    <button class="btn btn-primary" onclick="saveTermin()">💾 Speichern</button>
-    <button class="btn btn-danger mt-8" id="termin-delete-btn" onclick="deleteTermin()" style="display:none">🗑 Löschen</button>
-    <button class="btn btn-secondary mt-8" onclick="closeModal('modal-termin')">Abbrechen</button>
   </div>
 </div>
 
@@ -1557,50 +965,17 @@ async function uploadAttachmentToStorage(file, folder) {
 
 function setupFirebaseListeners() {
   if (!firebaseDB || !currentUser) return;
-  const mid = currentMandant ? currentMandant.id : 'm1';
-
-  // Push default drivers to Firebase if none exist yet (mandant-scoped)
+  // Push default drivers to Firebase if none exist yet
   if (currentRole === 'admin') {
-    firebaseDB.ref('mandanten/' + mid + '/drivers').once('value', snap => {
+    firebaseDB.ref('drivers').once('value', snap => {
       if (!snap.val() || Object.keys(snap.val()).length === 0) {
-        const mandantDrivers = DB.drivers.filter(d => !d.mandantId || d.mandantId === mid);
-        mandantDrivers.forEach(d => {
-          const driver = { ...d, mandantId: mid };
-          firebaseDB.ref('mandanten/' + mid + '/drivers/' + d.id).set(driver);
-        });
-        console.log('Default drivers pushed to Firebase for mandant', mid);
+        DB.drivers.forEach(d => firebaseDB.ref('drivers/' + d.id).set(d));
+        console.log('Default drivers pushed to Firebase');
       }
-    });
-    // Listen for mandant-scoped drivers
-    firebaseDB.ref('mandanten/' + mid + '/drivers').on('value', snap => {
-      const data = snap.val() || {};
-      const fbDrivers = Object.values(data);
-      if (fbDrivers.length > 0) {
-        DB.drivers = fbDrivers;
-        saveDriversToLocal();
-        if (document.getElementById('admin-view-fahrer') && document.getElementById('admin-view-fahrer').style.display !== 'none') {
-          renderFahrerList(DB.drivers);
-        }
-      }
-    });
-    // Listen for mandant-scoped checks
-    firebaseDB.ref('mandanten/' + mid + '/checks').on('value', snap => {
-      const data = snap.val() || {};
-      DB.checks = Object.values(data);
-      renderDonutCharts();
-      if (document.getElementById('admin-view-kontrollen') && document.getElementById('admin-view-kontrollen').style.display !== 'none') renderKontrollen();
-    });
-    // Listen for mandant-scoped pods
-    firebaseDB.ref('mandanten/' + mid + '/pods').on('value', snap => {
-      const data = snap.val() || {};
-      DB.pods = Object.values(data);
-      renderDonutCharts();
-      if (document.getElementById('admin-view-pods') && document.getElementById('admin-view-pods').style.display !== 'none') renderPODs();
     });
   }
-
-  // Listen for notifications (mandant-scoped)
-  const notifsRef = firebaseDB.ref('mandanten/' + mid + '/notifications');
+  // Listen for notifications for this user
+  const notifsRef = firebaseDB.ref('notifications');
   notifsRef.on('value', snap => {
     const data = snap.val() || {};
     const all = Object.values(data);
@@ -1643,7 +1018,7 @@ function setupFirebaseListeners() {
   });
 
   // Listen for driver messages
-  const msgsRef = firebaseDB.ref('mandanten/' + mid + '/driverMessages');
+  const msgsRef = firebaseDB.ref('driverMessages');
   msgsRef.on('value', snap => {
     const data = snap.val() || {};
     DB.driverMessages = Object.values(data);
@@ -1663,36 +1038,8 @@ function refreshNotifBadge() {
 
 // ─── DATA STORE ───────────────────────────────────────────────────
 const DB = {
-  superadmins: [
-    { username: 'superadmin', password: 'NM-Super2025!', name: 'Super Administrator' }
-  ],
-  mandanten: [
-    {
-      id: 'M-2024-0001',
-      name: 'NM-IT Solutions GmbH',
-      logo: '',
-      adresse: 'Musterstraße 1, 45127 Essen',
-      email: 'info@nm-it-solutions.de',
-      tel: '+49 201 123456',
-      adminUser: 'admin',
-      adminPass: 'NM-Admin2025!',
-      active: true,
-      gueltigBis: '2099-12-31',
-      maxFahrer: 10,
-      emailSettings: { from: '', serviceId: '', templateId: '', pubkey: '', maengelEmail: '' },
-      questions: null,
-      modules: {
-        abfahrt: true,
-        pod: true,
-        nachrichten: true,
-        fuhrpark: false,
-        fahrerdokumente: false
-      },
-      createdAt: new Date().toISOString()
-    }
-  ],
   admins: [
-    { username: 'admin', password: 'NM-Admin2025!', name: 'Administrator', mandantId: 'm1' }
+    { username: 'admin', password: 'NM-Admin2025!', name: 'Administrator' }
   ],
   drivers: [
     { id: 'd1', vorname: 'Thomas', nachname: 'Müller', email: 'mueller@fleet.de', username: 'fahrer1', password: 'pass123', email1: 'info@nm-it-solutions.de', email2: 'accounting@nm-it-solutions.de', werkstatt: '', status: 'active' },
@@ -1705,7 +1052,7 @@ const DB = {
   driverMessages: []
 };
 
-const DEFAULT_QUESTIONS = [
+const QUESTIONS = [
   'Fahrzeug außen ohne sichtbare Schäden (Karosserie, Aufbau, Türen)?',
   'Reifen und Reifendruck in Ordnung (inkl. Reserverad)?',
   'Beleuchtung vollständig funktionsfähig (Scheinwerfer, Bremslicht, Blinker)?',
@@ -1725,12 +1072,12 @@ const DEFAULT_QUESTIONS = [
   const now = new Date();
   const yesterday = new Date(now - 86400000);
   DB.checks = [
-    { id: 'c1', driverId: 'd1', driverName: 'Thomas Müller', timestamp: yesterday.toISOString(), answers: QUESTIONS.map((q,i) => ({ question: q, answer: i === 4 ? 'nein' : 'ja', remark: i===4 ? 'Leichtes Quietschen' : '', photos: [] })), signature: '', offline: false, status: 'offen', mandantId: 'm1' },
-    { id: 'c2', driverId: 'd2', driverName: 'Anna Schmidt', timestamp: now.toISOString(), answers: QUESTIONS.map(q => ({ question: q, answer: 'ja', remark: '', photos: [] })), signature: '', offline: false, status: 'bearbeitet', mandantId: 'm1' }
+    { id: 'c1', driverId: 'd1', driverName: 'Thomas Müller', timestamp: yesterday.toISOString(), answers: QUESTIONS.map((q,i) => ({ question: q, answer: i === 4 ? 'nein' : 'ja', remark: i===4 ? 'Leichtes Quietschen' : '', photos: [] })), signature: '', offline: false },
+    { id: 'c2', driverId: 'd2', driverName: 'Anna Schmidt', timestamp: now.toISOString(), answers: QUESTIONS.map(q => ({ question: q, answer: 'ja', remark: '', photos: [] })), signature: '', offline: false }
   ];
   DB.pods = [
-    { id: 'p1', driverId: 'd1', driverName: 'Thomas Müller', timestamp: yesterday.toISOString(), photos: [], remarks: 'Kunde anwesend', signature: '', offline: false, status: 'offen', mandantId: 'm1' },
-    { id: 'p2', driverId: 'd2', driverName: 'Anna Schmidt', timestamp: now.toISOString(), photos: [], remarks: '', signature: '', offline: false, status: 'bearbeitet', mandantId: 'm1' }
+    { id: 'p1', driverId: 'd1', driverName: 'Thomas Müller', timestamp: yesterday.toISOString(), photos: [], remarks: 'Kunde anwesend', signature: '', offline: false },
+    { id: 'p2', driverId: 'd2', driverName: 'Anna Schmidt', timestamp: now.toISOString(), photos: [], remarks: '', signature: '', offline: false }
   ];
   DB.notifications = [
     { id: 'n1', from: 'Admin', to: 'd1', message: 'Bitte Route über A61 nehmen – A3 gesperrt wegen Unfall.', timestamp: new Date(now - 3600000).toISOString(), read: false },
@@ -1738,20 +1085,9 @@ const DEFAULT_QUESTIONS = [
   ];
 })();
 
-// Get questions for current mandant
-function getMandantQuestions() {
-  if (currentMandant && currentMandant.questions && currentMandant.questions.length > 0) {
-    return currentMandant.questions;
-  }
-  return DEFAULT_QUESTIONS;
-}
-// Alias for backward compatibility
-const QUESTIONS = DEFAULT_QUESTIONS;
-
 // ─── APP STATE ───────────────────────────────────────────────────
 let currentUser = null;
 let currentRole = null;
-let currentMandant = null;
 let abfahrtAnswers = {};
 let abfahrtPhotos = {};
 let podPhotos = [];
@@ -1857,297 +1193,6 @@ function setupDriversFirebaseSync() {
   });
 }
 
-// ─── SUPER ADMIN ─────────────────────────────────────────────────
-const SUPERADMIN_EMAIL = 'info@nm-it-solutions.de';
-
-function generateMandantId() {
-  const year = new Date().getFullYear();
-  const num = String(DB.mandanten.length + 1).padStart(4, '0');
-  return `M-${year}-${num}`;
-}
-
-function refreshSuperAdmin() {
-  document.getElementById('sa-stat-mandanten').textContent = DB.mandanten.length;
-  document.getElementById('sa-stat-admins').textContent = DB.mandanten.filter(m => m.active).length;
-  renderMandantenList();
-  // Sync mandanten to Firebase
-  if (firebaseDB) {
-    DB.mandanten.forEach(m => firebaseDB.ref('mandanten/' + m.id + '/info').set(m));
-  }
-}
-
-function loadMandantenFromFirebase(cb) {
-  if (!firebaseDB) { cb && cb(); return; }
-  firebaseDB.ref('mandanten').once('value', snap => {
-    const data = snap.val() || {};
-    Object.keys(data).forEach(mid => {
-      const info = data[mid].info;
-      if (!info) return;
-      const idx = DB.mandanten.findIndex(m => m.id === mid);
-      if (idx >= 0) DB.mandanten[idx] = { ...DB.mandanten[idx], ...info };
-      else DB.mandanten.push(info);
-    });
-    cb && cb();
-  });
-}
-
-function renderMandantenList() {
-  const list = document.getElementById('mandanten-list');
-  if (!list) return;
-  list.innerHTML = '';
-  if (DB.mandanten.length === 0) {
-    list.innerHTML = '<p class="text-muted text-center" style="padding:20px">Keine Mandanten</p>';
-    return;
-  }
-  DB.mandanten.forEach(m => {
-    const expires = m.gueltigBis ? new Date(m.gueltigBis) : null;
-    const isExpired = expires && expires < new Date();
-    const daysLeft = expires ? Math.ceil((expires - new Date()) / 86400000) : null;
-    const card = document.createElement('div');
-    card.className = 'report-card';
-    card.style.cursor = 'pointer';
-    card.innerHTML = `
-      <div style="display:flex;align-items:center;gap:12px">
-        ${m.logo ? `<img src="${m.logo}" style="width:44px;height:44px;border-radius:10px;object-fit:contain;background:#fff;border:1px solid var(--border);padding:2px">` :
-          `<div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:16px">${m.name.charAt(0)}</div>`}
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:15px">${m.name}</div>
-          <div style="font-size:11px;color:var(--muted);font-family:monospace">${m.id}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${m.email || ''} ${m.tel ? '· ' + m.tel : ''}</div>
-        </div>
-        <div style="text-align:right;flex-shrink:0">
-          <div style="font-size:11px;font-weight:700;color:${m.active && !isExpired ? 'var(--green)' : 'var(--red)'}">
-            ${!m.active ? '⛔ Deaktiviert' : isExpired ? '⏰ Abgelaufen' : '✅ Aktiv'}
-          </div>
-          <div style="font-size:10px;color:var(--muted)">👥 ${m.maxFahrer || 5} Lizenzen</div>
-          ${daysLeft !== null && !isExpired ? `<div style="font-size:10px;color:${daysLeft < 30 ? 'var(--red)' : 'var(--muted)'}">📅 ${daysLeft}d</div>` : ''}
-        </div>
-      </div>
-    `;
-    card.onclick = () => openEditMandant(m);
-    list.appendChild(card);
-  });
-}
-
-function openAddMandant() {
-  document.getElementById('modal-mandant-title').textContent = 'Mandant anlegen';
-  document.getElementById('modal-mandant-id').value = '';
-  document.getElementById('m-id-display').style.display = 'none';
-  ['m-name','m-adresse','m-email','m-tel','m-admin-user','m-admin-pass'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('m-max-fahrer').value = '5';
-  const d = new Date(); d.setFullYear(d.getFullYear() + 1);
-  document.getElementById('m-gueltig-bis').value = d.toISOString().split('T')[0];
-  document.getElementById('m-status').value = 'true';
-  document.getElementById('m-logo-preview').innerHTML = '';
-  mandantLogoData = '';
-  // Default modules
-  const defMods = { abfahrt: true, pod: true, nachrichten: true, fuhrpark: false, fahrerdokumente: false };
-  Object.keys(defMods).forEach(m => {
-    const el = document.getElementById('m-mod-' + m);
-    if (el) { el.checked = defMods[m]; highlightModule(m, defMods[m]); }
-  });
-  document.getElementById('m-questions-section').style.display = 'block';
-  renderMandantQuestions(null);
-  openModal('modal-mandant');
-}
-
-function openEditMandant(m) {
-  document.getElementById('modal-mandant-title').textContent = 'Mandant bearbeiten';
-  document.getElementById('modal-mandant-id').value = m.id;
-  document.getElementById('m-id-display').style.display = 'block';
-  document.getElementById('m-id-text').textContent = m.id;
-  document.getElementById('m-name').value = m.name || '';
-  document.getElementById('m-adresse').value = m.adresse || '';
-  document.getElementById('m-email').value = m.email || '';
-  document.getElementById('m-tel').value = m.tel || '';
-  document.getElementById('m-admin-user').value = m.adminUser || '';
-  document.getElementById('m-admin-pass').value = m.adminPass || '';
-  document.getElementById('m-max-fahrer').value = m.maxFahrer || 5;
-  document.getElementById('m-gueltig-bis').value = m.gueltigBis || '';
-  document.getElementById('m-status').value = String(m.active !== false);
-  document.getElementById('m-logo-preview').innerHTML = m.logo ? `<img src="${m.logo}" style="max-height:50px;border-radius:8px;border:1px solid var(--border)">` : '';
-  mandantLogoData = '';
-  // Load modules
-  const mods = m.modules || { abfahrt: true, pod: true, nachrichten: true, fuhrpark: false, fahrerdokumente: false };
-  Object.keys(mods).forEach(mod => {
-    const el = document.getElementById('m-mod-' + mod);
-    if (el) { el.checked = mods[mod]; highlightModule(mod, mods[mod]); }
-  });
-  document.getElementById('m-questions-section').style.display = mods.abfahrt ? 'block' : 'none';
-  renderMandantQuestions(m.questions);
-  openModal('modal-mandant');
-}
-
-let mandantLogoData = '';
-function previewMandantLogo(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    mandantLogoData = e.target.result;
-    document.getElementById('m-logo-preview').innerHTML = `<img src="${mandantLogoData}" style="max-height:50px;border-radius:8px;border:1px solid var(--border)">`;
-  };
-  reader.readAsDataURL(file);
-}
-
-function saveMandant() {
-  const existingId = document.getElementById('modal-mandant-id').value;
-  const name = document.getElementById('m-name').value.trim();
-  const adminUser = document.getElementById('m-admin-user').value.trim();
-  const adminPass = document.getElementById('m-admin-pass').value;
-  if (!name || !adminUser || !adminPass) { showToast('⚠️ Pflichtfelder ausfüllen', 'error'); return; }
-
-  const existingMandant = existingId ? DB.mandanten.find(m => m.id === existingId) : null;
-  const modules = {};
-  ['abfahrt','pod','nachrichten','fuhrpark','fahrerdokumente'].forEach(m => {
-    const el = document.getElementById('m-mod-' + m);
-    modules[m] = el ? el.checked : false;
-  });
-  // Collect questions
-  const questionInputs = document.querySelectorAll('.mandant-question-input');
-  const questions = Array.from(questionInputs).map(i => i.value.trim()).filter(q => q.length > 0);
-
-  const data = {
-    id: existingId || generateMandantId(),
-    name,
-    adresse: document.getElementById('m-adresse').value.trim(),
-    email: document.getElementById('m-email').value.trim(),
-    tel: document.getElementById('m-tel').value.trim(),
-    adminUser, adminPass,
-    maxFahrer: parseInt(document.getElementById('m-max-fahrer').value) || 5,
-    gueltigBis: document.getElementById('m-gueltig-bis').value,
-    active: document.getElementById('m-status').value === 'true',
-    logo: mandantLogoData || (existingMandant ? existingMandant.logo || '' : ''),
-    emailSettings: existingMandant ? (existingMandant.emailSettings || {}) : {},
-    modules,
-    questions: questions.length > 0 ? questions : null,
-    createdAt: existingMandant ? existingMandant.createdAt : new Date().toISOString()
-  };
-
-  if (existingId) {
-    const idx = DB.mandanten.findIndex(m => m.id === existingId);
-    DB.mandanten[idx] = data;
-    showToast('✅ Mandant gespeichert', 'success');
-  } else {
-    DB.mandanten.push(data);
-    showToast('✅ Mandant angelegt: ' + data.id, 'success');
-  }
-
-  // Save to Firebase
-  if (firebaseDB) firebaseDB.ref('mandanten/' + data.id + '/info').set(data);
-
-  mandantLogoData = '';
-  closeModal('modal-mandant');
-  refreshSuperAdmin();
-}
-
-// No delete - only deactivate (handled via status in saveMandant)
-
-// ─── MODULE HELPERS ──────────────────────────────────────────────
-function hasModule(mod) {
-  if (!currentMandant) return true; // default: all active
-  if (!currentMandant.modules) return true;
-  return currentMandant.modules[mod] === true;
-}
-
-function highlightModule(mod, active) {
-  const label = document.getElementById('module-label-' + mod);
-  if (label) label.style.borderColor = active ? 'var(--accent)' : 'var(--border)';
-  if (mod === 'abfahrt') {
-    const qs = document.getElementById('m-questions-section');
-    if (qs) qs.style.display = active ? 'block' : 'none';
-  }
-}
-
-function renderMandantQuestions(existingQuestions) {
-  const list = document.getElementById('m-questions-list');
-  if (!list) return;
-  const qs = existingQuestions || DEFAULT_QUESTIONS;
-  list.innerHTML = '';
-  qs.forEach((q, i) => {
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex;gap:6px;align-items:center';
-    row.innerHTML = `
-      <span style="font-size:11px;color:var(--muted);min-width:20px;text-align:right">${i+1}.</span>
-      <input type="text" class="mandant-question-input" value="${q.replace(/"/g,'&quot;')}"
-        style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px">
-      <button onclick="this.parentElement.remove();renumberQuestions()" style="background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:0 4px">×</button>
-    `;
-    list.appendChild(row);
-  });
-}
-
-function addMandantQuestion() {
-  const list = document.getElementById('m-questions-list');
-  if (!list) return;
-  const count = list.children.length + 1;
-  const row = document.createElement('div');
-  row.style.cssText = 'display:flex;gap:6px;align-items:center';
-  row.innerHTML = `
-    <span style="font-size:11px;color:var(--muted);min-width:20px;text-align:right">${count}.</span>
-    <input type="text" class="mandant-question-input" placeholder="Neue Frage eingeben..."
-      style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px">
-    <button onclick="this.parentElement.remove();renumberQuestions()" style="background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:0 4px">×</button>
-  `;
-  list.appendChild(row);
-  row.querySelector('input').focus();
-}
-
-function renumberQuestions() {
-  document.querySelectorAll('#m-questions-list > div').forEach((row, i) => {
-    const num = row.querySelector('span');
-    if (num) num.textContent = (i+1) + '.';
-  });
-}
-
-// ─── CHECK MANDANT LICENSE ────────────────────────────────────────
-// Check mandant license when adding driver
-function checkLicense() {
-  if (!currentMandant) return true;
-  const mandantDrivers = DB.drivers.filter(d => d.mandantId === currentMandant.id && d.status === 'active').length;
-  const maxFahrer = currentMandant.maxFahrer || 5;
-  if (mandantDrivers >= maxFahrer) {
-    showToast('⚠️ Lizenz-Limit erreicht! Max. ' + maxFahrer + ' Fahrer.', 'error');
-    // Notify superadmin via email
-    const saBody = 'Mandant: ' + currentMandant.name + ' (' + currentMandant.id + ')\n' +
-      'Admin: ' + currentUser.username + '\n' +
-      'Hat versucht einen weiteren Fahrer anzulegen.\n' +
-      'Lizenz-Limit: ' + maxFahrer + ' Fahrer\n' +
-      'Aktuell: ' + mandantDrivers + ' aktive Fahrer\n\n' +
-      'Bitte Lizenz erweitern.';
-    sendEmailWithPDF(SUPERADMIN_EMAIL, '⚠️ Lizenz-Limit – ' + currentMandant.name, saBody, 'license');
-    // Show modal to user
-    setTimeout(() => {
-      alert('Sie haben das Lizenz-Limit von ' + maxFahrer + ' Fahrern erreicht.\n\nBitte wenden Sie sich an:\ninfo@nm-it-solutions.de');
-    }, 100);
-    return false;
-  }
-  return true;
-}
-
-// Check mandant expiry on login
-function checkMandantExpiry() {
-  if (!currentMandant) return true;
-  if (!currentMandant.active) {
-    showToast('⛔ Ihr Konto ist deaktiviert. Bitte wenden Sie sich an NM-IT Solutions.', 'error');
-    setTimeout(doLogout, 2000);
-    return false;
-  }
-  if (currentMandant.gueltigBis) {
-    const expires = new Date(currentMandant.gueltigBis);
-    if (expires < new Date()) {
-      showToast('⏰ Ihre Lizenz ist abgelaufen. Bitte wenden Sie sich an NM-IT Solutions.', 'error');
-      setTimeout(doLogout, 3000);
-      return false;
-    }
-    const daysLeft = Math.ceil((expires - new Date()) / 86400000);
-    if (daysLeft <= 30) {
-      showToast('⚠️ Ihre Lizenz läuft in ' + daysLeft + ' Tagen ab!', 'error');
-    }
-  }
-  return true;
-}
-
 // ─── NOTIFICATION STORAGE (localStorage für geräteübergreifende Nachrichten) ───
 function saveNotificationsToStorage() {
   try { localStorage.setItem('fc_notifications', JSON.stringify(DB.notifications)); } catch(e) {}
@@ -2207,11 +1252,6 @@ function saveO365Settings() {
     pubkey: document.getElementById('o365-pubkey').value.trim()
   };
   localStorage.setItem('o365settings', JSON.stringify(emailSettings));
-  // Save to mandant in Firebase
-  if (firebaseDB && currentMandant) {
-    firebaseDB.ref('mandanten/' + currentMandant.id + '/info/emailSettings').set(emailSettings);
-    currentMandant.emailSettings = emailSettings;
-  }
   showToast('✅ E-Mail Einstellungen gespeichert', 'success');
   closeModal('modal-o365');
   if (emailSettings.pubkey) initEmailJS();
@@ -2360,7 +1400,7 @@ function sendDriverMessage() {
   };
   
   if (firebaseDB) {
-    const dmmid = currentMandant ? currentMandant.id : 'm1'; firebaseDB.ref('mandanten/' + dmmid + '/driverMessages/' + msg.id).set(msg);
+    firebaseDB.ref('driverMessages/' + msg.id).set(msg);
   } else {
     DB.driverMessages.push(msg);
     saveDriveMessageToStorage(msg);
@@ -2397,29 +1437,6 @@ function renderDriverSentMsgs() {
     `;
     list.appendChild(card);
   });
-}
-
-// ─── STATUS MANAGEMENT ───────────────────────────────────────────
-let currentCheckForStatus = null;
-
-function setCheckStatus(status) {
-  if (!currentCheckForStatus) return;
-  currentCheckForStatus.status = status;
-  if (firebaseDB) firebaseDB.ref('mandanten/' + (currentCheckForStatus.mandantId || 'm1') + '/checks/' + currentCheckForStatus.id + '/status').set(status);
-  showToast(status === 'bearbeitet' ? '✅ Als bearbeitet markiert' : '🔄 Status zurückgesetzt', 'success');
-  closeModal('modal-kontrolle');
-  renderKontrollen();
-  renderDonutCharts();
-}
-
-function setPODStatus(status) {
-  if (!currentPODForForward) return;
-  currentPODForForward.status = status;
-  if (firebaseDB) firebaseDB.ref('mandanten/' + (currentPODForForward.mandantId || 'm1') + '/pods/' + currentPODForForward.id + '/status').set(status);
-  showToast(status === 'bearbeitet' ? '✅ Als bearbeitet markiert' : '🔄 Status zurückgesetzt', 'success');
-  closeModal('modal-pod');
-  renderPODs();
-  renderDonutCharts();
 }
 
 // ─── POD FORWARD ─────────────────────────────────────────────────
@@ -2497,32 +1514,8 @@ function renderFahrerMsgs() {
 function doLogin() {
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value.trim();
-  // SuperAdmin check
-  const sa = DB.superadmins.find(a => a.username === u && a.password === p);
-  if (sa) { currentUser = sa; currentRole = 'superadmin'; goTo('screen-superadmin'); refreshSuperAdmin(); return; }
-  // Admin check - also check mandanten admins
-  let admin = DB.admins.find(a => a.username === u && a.password === p);
-  if (!admin) {
-    // Check mandanten for admin credentials
-    const m = DB.mandanten.find(m => m.adminUser === u && m.adminPass === p && m.active);
-    if (m) admin = { username: u, password: p, name: 'Administrator', mandantId: m.id };
-  }
-  if (admin) {
-    currentUser = admin;
-    currentRole = 'admin';
-    // Load mandant data
-    const mandant = DB.mandanten.find(m => m.id === (admin.mandantId || 'm1'));
-    currentMandant = mandant || DB.mandanten[0];
-    if (!checkMandantExpiry()) return;
-    // Load mandant-specific email settings
-    if (currentMandant && currentMandant.emailSettings) {
-      emailSettings = { ...emailSettings, ...currentMandant.emailSettings };
-    }
-    goTo('screen-admin-home');
-    loadO365Settings(); initEmailJS(); loadDriversFromLocal();
-    setTimeout(() => { initFirebase(); setTimeout(setupDriversFirebaseSync, 1000); }, 500);
-    return;
-  }
+  const admin = DB.admins.find(a => a.username === u && a.password === p);
+  if (admin) { currentUser = admin; currentRole = 'admin'; goTo('screen-admin-home'); loadO365Settings(); initEmailJS(); loadDriversFromLocal(); setTimeout(() => { initFirebase(); setTimeout(setupDriversFirebaseSync, 1000); }, 500); return; }
   const driver = DB.drivers.find(d => d.username === u && d.password === p && d.status === 'active');
   if (driver) { currentUser = driver; currentRole = 'driver'; goTo('screen-driver-home'); loadDriversFromLocal(); setTimeout(initFirebase, 500); return; }
   showToast('❌ Benutzername oder Kennwort falsch', 'error');
@@ -2541,12 +1534,6 @@ function doLogout() {
 function refreshDriverHome() {
   document.getElementById('driver-welcome-name').textContent = currentUser.vorname + ' ' + currentUser.nachname;
   document.getElementById('driver-topbar-sub').textContent = 'Fahrer';
-  // Show/hide buttons based on modules
-  const moduleMap = { abfahrt: 'btn-abfahrt', pod: 'btn-pod', nachrichten: 'btn-nachrichten', fahrerdokumente: 'btn-fahrerdokumente' };
-  Object.entries(moduleMap).forEach(([mod, btnId]) => {
-    const btn = document.getElementById(btnId);
-    if (btn) btn.style.display = hasModule(mod) ? 'block' : 'none';
-  });
   const now = new Date();
   document.getElementById('driver-date').textContent = now.toLocaleDateString('de-DE', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
   // Notifications
@@ -2565,8 +1552,7 @@ function initAbfahrt() {
   abfahrtPhotos = {};
   const container = document.getElementById('abfahrt-questions');
   container.innerHTML = '';
-  const questions = getMandantQuestions();
-  questions.forEach((q, i) => {
+  QUESTIONS.forEach((q, i) => {
     const div = document.createElement('div');
     div.className = 'question-card';
     div.id = `qcard-${i}`;
@@ -2605,7 +1591,7 @@ function setAnswer(idx, val, btn) {
 
 function updateAbfahrtProgress() {
   const answered = Object.keys(abfahrtAnswers).length;
-  const total = getMandantQuestions().length;
+  const total = QUESTIONS.length;
   const pct = (answered / total) * 100;
   document.getElementById('abfahrt-progress').style.width = pct + '%';
   const isComplete = answered === total;
@@ -2644,26 +1630,21 @@ function renderAbfahrtPhotos(idx) {
 }
 
 async function submitAbfahrt() {
-  const qs = getMandantQuestions();
-  for (let i = 0; i < qs.length; i++) {
+  for (let i = 0; i < QUESTIONS.length; i++) {
     if (!abfahrtAnswers[i]) { showToast('⚠️ Bitte alle Fragen beantworten (Frage ' + (i+1) + ')', 'error'); return; }
   }
   const sigData = getSigData('sig-canvas-abfahrt');
-  const answers = getMandantQuestions().map((q, i) => ({
+  const answers = QUESTIONS.map((q, i) => ({
     question: q, answer: abfahrtAnswers[i],
     remark: document.getElementById(`remark-${i}`)?.value || '',
     photos: abfahrtPhotos[i] || []
   }));
-  const checkId = 'K-' + (currentMandant ? currentMandant.id : 'M0') + '-' + Date.now();
   const entry = {
-    id: checkId,
-    vorgangId: checkId,
+    id: 'c' + Date.now(),
     driverId: currentUser.id,
     driverName: currentUser.vorname + ' ' + currentUser.nachname,
-    mandantId: currentMandant ? currentMandant.id : 'm1',
     timestamp: new Date().toISOString(),
     answers, signature: sigData,
-    status: 'offen',
     offline: !isOnline
   };
   if (isOnline && firebaseDB) {
@@ -2692,8 +1673,7 @@ async function submitAbfahrt() {
     }));
     const sigThumb = entry.signature ? await makeThumbnail(entry.signature) : '';
     const entryForDB = { ...entry, answers: answersWithThumbs, signature: sigThumb };
-    const mid = entry.mandantId || 'm1';
-    firebaseDB.ref('mandanten/' + mid + '/checks/' + entry.id).set(entryForDB);
+    firebaseDB.ref('checks/' + entry.id).set(entryForDB);
     DB.checks.push(entry);
   } else if (isOnline) {
     DB.checks.push(entry);
@@ -2743,17 +1723,13 @@ function renderPodPhotos() {
 }
 
 function submitPOD() {
-  const podId = 'P-' + (currentMandant ? currentMandant.id : 'M0') + '-' + Date.now();
   const entry = {
-    id: podId,
-    vorgangId: podId,
+    id: 'p' + Date.now(),
     driverId: currentUser.id,
     driverName: currentUser.vorname + ' ' + currentUser.nachname,
-    mandantId: currentMandant ? currentMandant.id : 'm1',
     timestamp: new Date().toISOString(),
     photos: podPhotos,
     remarks: document.getElementById('pod-remarks').value,
-    status: 'offen',
     offline: !isOnline
   };
   // Save to Firebase or local
@@ -2775,8 +1751,7 @@ function submitPOD() {
     });
     Promise.all(entry.photos.map(p => makeThumbnail(p))).then(thumbs => {
       const entryForDB = { ...entry, photos: thumbs, photoCount: entry.photos.length, hasThumbs: true };
-      const pmid = entry.mandantId || 'm1';
-      firebaseDB.ref('mandanten/' + pmid + '/pods/' + entry.id).set(entryForDB);
+      firebaseDB.ref('pods/' + entry.id).set(entryForDB);
     });
     DB.pods.push(entry); // keep full version with photos locally
   } else if (isOnline) {
@@ -3196,187 +2171,28 @@ function refreshAdmin() {
   const active = DB.drivers.filter(d => d.status === 'active').length;
   const today = new Date().toDateString();
   const checksToday = DB.checks.filter(c => new Date(c.timestamp).toDateString() === today).length;
-  const maengel = DB.checks.reduce((sum, c) => sum + (c.answers ? c.answers.filter(a => a.answer === 'nein').length : 0), 0);
+  const maengel = DB.checks.reduce((sum, c) => sum + c.answers.filter(a => a.answer === 'nein').length, 0);
   document.getElementById('stat-fahrer').textContent = active;
   document.getElementById('stat-checks').textContent = checksToday;
   document.getElementById('stat-pods').textContent = DB.pods.length;
   document.getElementById('stat-maengel').textContent = maengel;
+  renderFahrerList(DB.drivers);
   populateFilterDropdowns();
-  // Show/hide admin menu buttons based on modules
-  const adminModuleMap = {
-    abfahrt: 'menu-btn-kontrollen',
-    pod: 'menu-btn-pods',
-    nachrichten: ['menu-btn-nachrichten','menu-btn-fahrermsgs'],
-    fuhrpark: 'menu-btn-fuhrpark'
-  };
-  Object.entries(adminModuleMap).forEach(([mod, btnIds]) => {
-    const ids = Array.isArray(btnIds) ? btnIds : [btnIds];
-    ids.forEach(id => {
-      const btn = document.getElementById(id);
-      if (btn) btn.style.display = hasModule(mod) ? 'flex' : 'none';
-    });
-  });
-  adminNav('dashboard');
+  renderKontrollen();
+  renderPODs();
+  renderSentNotifs();
 }
 
-function renderFuhrpark() {
-  // Placeholder - full implementation in next phase
-}
-
-let adminWeeklyChart = null;
-
-function adminNav(name) {
-  closeAdminMenu();
-  const views = ['dashboard','fahrer','kontrollen','pods','nachrichten','fahrermsgs','einstellungen'];
-  views.forEach(v => {
-    const el = document.getElementById('admin-view-' + v);
-    if (el) el.style.display = v === name ? 'block' : 'none';
+function adminTab(name) {
+  ['fahrer','kontrollen','pods','nachrichten','fahrermsgs'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('hidden', t !== name);
   });
-  // FAB only for fahrer
+  document.querySelectorAll('#admin-tabs .tab').forEach((tab, i) => {
+    tab.classList.toggle('active', ['fahrer','kontrollen','pods','nachrichten','fahrermsgs'][i] === name);
+  });
   const fab = document.getElementById('fab-add');
-  if (fab) fab.style.display = name === 'fahrer' ? 'flex' : 'none';
-  // Breadcrumb
-  const sub = document.getElementById('admin-breadcrumb-sub');
-  const txt = document.getElementById('admin-breadcrumb-text');
-  const labels = {fahrer:'Fahrer',kontrollen:'Kontrollen',pods:'PODs',nachrichten:'Nachrichten',fahrermsgs:'Eingang',einstellungen:'Einstellungen'};
-  if (sub && txt) {
-    if (name === 'dashboard') { sub.style.display='none'; }
-    else { sub.style.display='inline'; txt.textContent = labels[name] || name; }
-  }
-  // Render content
-  if (name === 'fahrer') renderFahrerList(DB.drivers);
-  if (name === 'kontrollen') { populateFilterDropdowns(); renderKontrollen(); }
-  if (name === 'pods') { populateFilterDropdowns(); renderPODs(); }
-  if (name === 'nachrichten') { populateFilterDropdowns(); renderSentNotifs(); }
+  fab.style.display = name === 'fahrer' ? 'flex' : 'none';
   if (name === 'fahrermsgs') renderFahrerMsgs();
-  if (name === 'fuhrpark') renderFuhrpark();
-  if (name === 'dashboard') renderAdminDashboard();
-  // Scroll to top
-  const pc = document.getElementById('admin-page-content');
-  if (pc) pc.scrollTop = 0;
-}
-
-// Keep adminTab as alias for backward compatibility
-function adminTab(name) { adminNav(name); }
-
-function toggleAdminMenu() {
-  const overlay = document.getElementById('admin-menu-overlay');
-  if (overlay) overlay.style.display = overlay.style.display === 'none' ? 'flex' : 'none';
-}
-
-function closeAdminMenu() {
-  const overlay = document.getElementById('admin-menu-overlay');
-  if (overlay) overlay.style.display = 'none';
-}
-
-function renderAdminDashboard() {
-  // Show/hide quick actions based on modules
-  const qaMap = { nachrichten:'qa-nachrichten', abfahrt:'qa-kontrollen', pod:'qa-pods', fuhrpark:'qa-fuhrpark' };
-  Object.entries(qaMap).forEach(([mod, id]) => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = hasModule(mod) ? 'flex' : 'none';
-  });
-  // Driver activity
-  const actList = document.getElementById('driver-activity-list');
-  if (actList) {
-    const active = DB.drivers.filter(d => d.status === 'active');
-    if (active.length === 0) { actList.innerHTML = '<p class="text-muted" style="font-size:13px;padding:8px 0">Keine aktiven Fahrer</p>'; }
-    else {
-      actList.innerHTML = active.map(d => {
-        const dChecks = DB.checks.filter(c => c.driverId === d.id).length;
-        const dPods = DB.pods.filter(p => p.driverId === d.id).length;
-        const lastActivity = [...DB.checks, ...DB.pods].filter(e => e.driverId === d.id).sort((a,b) => new Date(b.timestamp)-new Date(a.timestamp))[0];
-        return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
-          <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:#fff;flex-shrink:0">${d.vorname[0]}${d.nachname[0]}</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:600;font-size:13px">${d.vorname} ${d.nachname}</div>
-            <div style="font-size:11px;color:var(--muted)">${lastActivity ? 'Zuletzt: ' + new Date(lastActivity.timestamp).toLocaleDateString('de-DE') : 'Noch keine Aktivität'}</div>
-          </div>
-          <div style="display:flex;gap:8px">
-            <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:4px 8px">
-              <div style="font-weight:700;font-size:13px;color:var(--green)">${dChecks}</div>
-              <div style="font-size:10px;color:var(--muted)">Ktrl</div>
-            </div>
-            <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:4px 8px">
-              <div style="font-weight:700;font-size:13px;color:var(--blue)">${dPods}</div>
-              <div style="font-size:10px;color:var(--muted)">POD</div>
-            </div>
-          </div>
-        </div>`;
-      }).join('');
-    }
-  }
-  // Weekly chart
-  renderWeeklyChart();
-  // Donut charts
-  renderDonutCharts();
-}
-
-let donutPOD = null, donutCheck = null, donutMsg = null;
-
-function renderDonutCharts() {
-  if (typeof Chart === 'undefined') return;
-  // POD Status
-  const podsOffen = DB.pods.filter(p => p.status !== 'bearbeitet').length;
-  const podsBearbeitet = DB.pods.filter(p => p.status === 'bearbeitet').length;
-  // Check Status
-  const checksOffen = DB.checks.filter(c => c.status !== 'bearbeitet').length;
-  const checksBearbeitet = DB.checks.filter(c => c.status === 'bearbeitet').length;
-  // Messages unread
-  const msgsUnread = DB.notifications.filter(n => !n.read).length;
-  const msgsRead = DB.notifications.filter(n => n.read).length;
-
-  const donutOpts = (labels, data, colors) => ({
-    type: 'doughnut',
-    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0, hoverOffset: 4 }] },
-    options: {
-      responsive: true, cutout: '70%',
-      plugins: { legend: { position: 'bottom', labels: { color: '#5a7a96', font: { size: 10 }, boxWidth: 10, padding: 8 } } }
-    }
-  });
-
-  const c1 = document.getElementById('chart-pod-status');
-  const c2 = document.getElementById('chart-check-status');
-  const c3 = document.getElementById('chart-msg-status');
-  if (c1) { if (donutPOD) donutPOD.destroy(); donutPOD = new Chart(c1, donutOpts(['Offen','Bearbeitet'],[podsOffen,podsBearbeitet],['#e8891a','#1e9e57'])); }
-  if (c2) { if (donutCheck) donutCheck.destroy(); donutCheck = new Chart(c2, donutOpts(['Offen','Bearbeitet'],[checksOffen,checksBearbeitet],['#d93025','#1a7abf'])); }
-  if (c3) { if (donutMsg) donutMsg.destroy(); donutMsg = new Chart(c3, donutOpts(['Ungelesen','Gelesen'],[msgsUnread,msgsRead],['#9b59b6','#5a7a96'])); }
-}
-
-function renderWeeklyChart() {
-  const canvas = document.getElementById('chart-weekly');
-  if (!canvas || typeof Chart === 'undefined') return;
-  // Build last 7 days data
-  const days = [];
-  const checksData = [];
-  const podsData = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const dateStr = d.toDateString();
-    days.push(d.toLocaleDateString('de-DE', { weekday: 'short' }));
-    checksData.push(DB.checks.filter(c => new Date(c.timestamp).toDateString() === dateStr).length);
-    podsData.push(DB.pods.filter(p => new Date(p.timestamp).toDateString() === dateStr).length);
-  }
-  if (adminWeeklyChart) adminWeeklyChart.destroy();
-  adminWeeklyChart = new Chart(canvas, {
-    type: 'bar',
-    data: {
-      labels: days,
-      datasets: [
-        { label: 'Kontrollen', data: checksData, backgroundColor: 'rgba(26,122,191,0.8)', borderRadius: 6 },
-        { label: 'PODs', data: podsData, backgroundColor: 'rgba(59,130,246,0.5)', borderRadius: 6 }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { labels: { color: getComputedStyle(document.body).getPropertyValue('--text') || '#1a2533', font: { size: 11 } } } },
-      scales: {
-        x: { ticks: { color: '#5a7a96', font: { size: 11 } }, grid: { display: false } },
-        y: { ticks: { color: '#5a7a96', font: { size: 11 }, stepSize: 1 }, grid: { color: 'rgba(0,0,0,0.05)' }, beginAtZero: true }
-      }
-    }
-  });
 }
 
 function renderFahrerList(drivers) {
@@ -3470,16 +2286,14 @@ function saveDriver() {
     DB.drivers[idx] = { ...DB.drivers[idx], ...data };
     showToast('✅ Fahrer gespeichert', 'success');
   } else {
-    if (!checkLicense()) return;
-    driverId = 'F-' + (currentMandant ? currentMandant.id : 'M0') + '-' + Date.now();
-    DB.drivers.push({ id: driverId, ...data, mandantId: currentMandant ? currentMandant.id : 'm1' });
+    driverId = 'd' + Date.now();
+    DB.drivers.push({ id: driverId, ...data });
     showToast('✅ Fahrer angelegt', 'success');
   }
-  // Save to Firebase under mandant path
+  // Save to Firebase
   if (firebaseDB) {
     const driver = DB.drivers.find(d => d.id === driverId);
-    const mid = driver.mandantId || (currentMandant ? currentMandant.id : 'm1');
-    firebaseDB.ref('mandanten/' + mid + '/drivers/' + driverId).set(driver);
+    firebaseDB.ref('drivers/' + driverId).set(driver);
   }
   saveDriversToLocal();
   closeModal('modal-fahrer');
@@ -3516,17 +2330,14 @@ function renderKontrollen() {
     const card = document.createElement('div');
     card.className = 'report-card';
     card.style.cursor = 'pointer';
-    const statusColor = c.status === 'bearbeitet' ? 'var(--green)' : 'var(--accent)';
-    const statusLabel = c.status === 'bearbeitet' ? '✅ Bearbeitet' : '🔄 Offen';
     card.innerHTML = `
       <div class="report-top">
         <div class="report-driver">${c.driverName}</div>
         <div class="report-date">${new Date(c.timestamp).toLocaleString('de-DE')}</div>
       </div>
       <div class="report-status">
-        <div class="chip ok">✅ ${c.answers ? c.answers.filter(a=>a.answer!=='nein').length : 0} OK</div>
+        <div class="chip ok">✅ ${c.answers.filter(a=>a.answer!=='nein').length} OK</div>
         ${maengel > 0 ? `<div class="chip warn">⚠️ ${maengel} Mängel</div>` : ''}
-        <div class="chip" style="color:${statusColor};border-color:${statusColor}40">${statusLabel}</div>
         ${c.offline ? '<div class="sync-badge">Offline</div>' : ''}
       </div>
     `;
@@ -3536,15 +2347,10 @@ function renderKontrollen() {
 }
 
 function openKontrolleDetail(c) {
-  currentCheckForStatus = c;
   const cont = document.getElementById('modal-kontrolle-content');
   const maengel = c.answers ? c.answers.filter(a => a.answer === 'nein').length : 0;
   const ok = c.answers ? c.answers.filter(a => a.answer !== 'nein').length : 0;
   cont.innerHTML = `
-    <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:11px;font-family:monospace;color:var(--muted)">
-      Vorgang-ID: <strong style="color:var(--accent)">${p.vorgangId || p.id}</strong>
-      ${p.mandantId ? ' · Mandant: <strong>' + p.mandantId + '</strong>' : ''}
-    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
       <div style="background:var(--surface2);border-radius:10px;padding:10px">
         <div style="font-size:10px;color:var(--muted);margin-bottom:2px">Fahrer</div>
@@ -3620,7 +2426,6 @@ function renderPODs() {
         <div class="chip ok">📷 ${photoCount} Beleg(e)</div>
         ${p.remarks ? `<div class="chip">💬 ${p.remarks.substring(0,30)}</div>` : ''}
         ${p.ocrText ? `<div class="chip" style="color:var(--blue)">🔍 OCR</div>` : ''}
-        <div class="chip" style="color:${p.status==='bearbeitet'?'var(--green)':'var(--accent)'};border-color:${p.status==='bearbeitet'?'var(--green)':'var(--accent)'}40">${p.status==='bearbeitet'?'✅ Bearbeitet':'🔄 Offen'}</div>
         ${p.offline ? '<div class="sync-badge">Offline</div>' : ''}
       </div>
       ${ocrPreview ? `<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5;padding:6px 8px;background:var(--surface2);border-radius:6px">${ocrPreview}</div>` : ''}
@@ -3639,10 +2444,6 @@ function openPODDetail(p) {
   // Check if photos are real base64 or placeholder strings
   const validPhotos = photos.filter(ph => ph && ph.startsWith('data:'));
   cont.innerHTML = `
-    <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:11px;font-family:monospace;color:var(--muted)">
-      Vorgang-ID: <strong style="color:var(--accent)">${p.vorgangId || p.id}</strong>
-      ${p.mandantId ? ' · Mandant: <strong>' + p.mandantId + '</strong>' : ''}
-    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
       <div style="background:var(--surface2);border-radius:10px;padding:10px">
         <div style="font-size:10px;color:var(--muted);margin-bottom:2px">Fahrer</div>
@@ -3721,8 +2522,7 @@ async function sendNotification() {
   }
 
   if (firebaseDB) {
-    const nmid = currentMandant ? currentMandant.id : 'm1';
-    firebaseDB.ref('mandanten/' + nmid + '/notifications/' + newNotif.id).set(newNotif);
+    firebaseDB.ref('notifications/' + newNotif.id).set(newNotif);
   } else {
     DB.notifications.push(newNotif);
     saveNotificationsToStorage();
@@ -3776,7 +2576,7 @@ function markRead(id, btn) {
   const n = DB.notifications.find(n => n.id === id);
   if (n) {
     n.read = true;
-    if (firebaseDB) { const rmid = currentMandant ? currentMandant.id : 'm1'; firebaseDB.ref('mandanten/' + rmid + '/notifications/' + id + '/read').set(true); }
+    if (firebaseDB) firebaseDB.ref('notifications/' + id + '/read').set(true);
     else saveNotificationsToStorage();
   }
   btn.parentElement.classList.add('read');
