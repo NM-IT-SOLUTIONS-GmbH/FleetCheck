@@ -1080,6 +1080,10 @@
     <div class="modal-handle"></div>
     <div class="modal-title" id="modal-mandant-title">Mandant anlegen</div>
     <input type="hidden" id="modal-mandant-id">
+    <div id="m-id-display" style="display:none;background:var(--surface2);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:var(--muted)">
+      Mandant-ID: <strong id="m-id-text" style="color:var(--accent);font-family:monospace"></strong>
+    </div>
+
     <div class="form-group"><label>Firmenname *</label><input type="text" id="m-name" placeholder="Musterfirma GmbH"></div>
     <div class="form-group"><label>Adresse</label><input type="text" id="m-adresse" placeholder="Musterstraße 1, 45127 Essen"></div>
     <div class="form-group"><label>E-Mail</label><input type="email" id="m-email" placeholder="info@firma.de"></div>
@@ -1092,21 +1096,36 @@
         <input type="file" id="m-logo-file" accept="image/*" onchange="previewMandantLogo(event)" style="display:none">
       </label>
     </div>
+
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px">
-      <div style="font-size:12px;font-weight:700;margin-bottom:8px">Admin-Zugangsdaten</div>
-      <div class="form-group"><label>Admin Benutzername *</label><input type="text" id="m-admin-user" placeholder="admin"></div>
-      <div class="form-group"><label>Admin Passwort *</label><input type="password" id="m-admin-pass" placeholder="••••••••"></div>
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px">🔐 Admin-Zugangsdaten</div>
+      <div class="form-group"><label>Admin Benutzername *</label><input type="text" id="m-admin-user" placeholder="admin.firma"></div>
+      <div class="form-group" style="margin-bottom:0"><label>Admin Passwort *</label><input type="password" id="m-admin-pass" placeholder="••••••••"></div>
     </div>
+
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px">📋 Lizenz & Laufzeit</div>
+      <div class="form-group">
+        <label>Max. Fahrer (Lizenzen)</label>
+        <input type="number" id="m-max-fahrer" placeholder="5" min="1" max="999" value="5">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Gültig bis</label>
+        <input type="date" id="m-gueltig-bis">
+      </div>
+    </div>
+
     <div class="form-group">
       <label>Status</label>
-      <select id="m-status">
-        <option value="true">Aktiv</option>
-        <option value="false">Deaktiviert</option>
+      <select id="m-status" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-size:14px">
+        <option value="true">✅ Aktiv</option>
+        <option value="false">⛔ Deaktiviert</option>
       </select>
     </div>
+
     <button class="btn btn-primary" onclick="saveMandant()">💾 Speichern</button>
-    <button class="btn btn-secondary mt-8" id="delete-mandant-btn" onclick="deleteMandant()" class="hidden">🗑 Mandant löschen</button>
     <button class="btn btn-secondary mt-8" onclick="closeModal('modal-mandant')">Abbrechen</button>
+    <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px">Mandanten können nicht gelöscht werden — nur deaktiviert.</p>
   </div>
 </div>
 
@@ -1259,17 +1278,50 @@ async function uploadAttachmentToStorage(file, folder) {
 
 function setupFirebaseListeners() {
   if (!firebaseDB || !currentUser) return;
-  // Push default drivers to Firebase if none exist yet
+  const mid = currentMandant ? currentMandant.id : 'm1';
+
+  // Push default drivers to Firebase if none exist yet (mandant-scoped)
   if (currentRole === 'admin') {
-    firebaseDB.ref('drivers').once('value', snap => {
+    firebaseDB.ref('mandanten/' + mid + '/drivers').once('value', snap => {
       if (!snap.val() || Object.keys(snap.val()).length === 0) {
-        DB.drivers.forEach(d => firebaseDB.ref('drivers/' + d.id).set(d));
-        console.log('Default drivers pushed to Firebase');
+        const mandantDrivers = DB.drivers.filter(d => !d.mandantId || d.mandantId === mid);
+        mandantDrivers.forEach(d => {
+          const driver = { ...d, mandantId: mid };
+          firebaseDB.ref('mandanten/' + mid + '/drivers/' + d.id).set(driver);
+        });
+        console.log('Default drivers pushed to Firebase for mandant', mid);
       }
     });
+    // Listen for mandant-scoped drivers
+    firebaseDB.ref('mandanten/' + mid + '/drivers').on('value', snap => {
+      const data = snap.val() || {};
+      const fbDrivers = Object.values(data);
+      if (fbDrivers.length > 0) {
+        DB.drivers = fbDrivers;
+        saveDriversToLocal();
+        if (document.getElementById('admin-view-fahrer') && document.getElementById('admin-view-fahrer').style.display !== 'none') {
+          renderFahrerList(DB.drivers);
+        }
+      }
+    });
+    // Listen for mandant-scoped checks
+    firebaseDB.ref('mandanten/' + mid + '/checks').on('value', snap => {
+      const data = snap.val() || {};
+      DB.checks = Object.values(data);
+      renderDonutCharts();
+      if (document.getElementById('admin-view-kontrollen') && document.getElementById('admin-view-kontrollen').style.display !== 'none') renderKontrollen();
+    });
+    // Listen for mandant-scoped pods
+    firebaseDB.ref('mandanten/' + mid + '/pods').on('value', snap => {
+      const data = snap.val() || {};
+      DB.pods = Object.values(data);
+      renderDonutCharts();
+      if (document.getElementById('admin-view-pods') && document.getElementById('admin-view-pods').style.display !== 'none') renderPODs();
+    });
   }
-  // Listen for notifications for this user
-  const notifsRef = firebaseDB.ref('notifications');
+
+  // Listen for notifications (mandant-scoped)
+  const notifsRef = firebaseDB.ref('mandanten/' + mid + '/notifications');
   notifsRef.on('value', snap => {
     const data = snap.val() || {};
     const all = Object.values(data);
@@ -1312,7 +1364,7 @@ function setupFirebaseListeners() {
   });
 
   // Listen for driver messages
-  const msgsRef = firebaseDB.ref('driverMessages');
+  const msgsRef = firebaseDB.ref('mandanten/' + mid + '/driverMessages');
   msgsRef.on('value', snap => {
     const data = snap.val() || {};
     DB.driverMessages = Object.values(data);
@@ -1337,7 +1389,7 @@ const DB = {
   ],
   mandanten: [
     {
-      id: 'm1',
+      id: 'M-2024-0001',
       name: 'NM-IT Solutions GmbH',
       logo: '',
       adresse: 'Musterstraße 1, 45127 Essen',
@@ -1345,7 +1397,11 @@ const DB = {
       tel: '+49 201 123456',
       adminUser: 'admin',
       adminPass: 'NM-Admin2025!',
-      active: true
+      active: true,
+      gueltigBis: '2099-12-31',
+      maxFahrer: 10,
+      emailSettings: { from: '', serviceId: '', templateId: '', pubkey: '', maengelEmail: '' },
+      createdAt: new Date().toISOString()
     }
   ],
   admins: [
@@ -1505,27 +1561,69 @@ function setupDriversFirebaseSync() {
 }
 
 // ─── SUPER ADMIN ─────────────────────────────────────────────────
+const SUPERADMIN_EMAIL = 'info@nm-it-solutions.de';
+
+function generateMandantId() {
+  const year = new Date().getFullYear();
+  const num = String(DB.mandanten.length + 1).padStart(4, '0');
+  return `M-${year}-${num}`;
+}
+
 function refreshSuperAdmin() {
   document.getElementById('sa-stat-mandanten').textContent = DB.mandanten.length;
   document.getElementById('sa-stat-admins').textContent = DB.mandanten.filter(m => m.active).length;
   renderMandantenList();
+  // Sync mandanten to Firebase
+  if (firebaseDB) {
+    DB.mandanten.forEach(m => firebaseDB.ref('mandanten/' + m.id + '/info').set(m));
+  }
+}
+
+function loadMandantenFromFirebase(cb) {
+  if (!firebaseDB) { cb && cb(); return; }
+  firebaseDB.ref('mandanten').once('value', snap => {
+    const data = snap.val() || {};
+    Object.keys(data).forEach(mid => {
+      const info = data[mid].info;
+      if (!info) return;
+      const idx = DB.mandanten.findIndex(m => m.id === mid);
+      if (idx >= 0) DB.mandanten[idx] = { ...DB.mandanten[idx], ...info };
+      else DB.mandanten.push(info);
+    });
+    cb && cb();
+  });
 }
 
 function renderMandantenList() {
   const list = document.getElementById('mandanten-list');
   if (!list) return;
   list.innerHTML = '';
+  if (DB.mandanten.length === 0) {
+    list.innerHTML = '<p class="text-muted text-center" style="padding:20px">Keine Mandanten</p>';
+    return;
+  }
   DB.mandanten.forEach(m => {
+    const expires = m.gueltigBis ? new Date(m.gueltigBis) : null;
+    const isExpired = expires && expires < new Date();
+    const daysLeft = expires ? Math.ceil((expires - new Date()) / 86400000) : null;
     const card = document.createElement('div');
     card.className = 'report-card';
     card.style.cursor = 'pointer';
     card.innerHTML = `
       <div style="display:flex;align-items:center;gap:12px">
-        ${m.logo ? `<img src="${m.logo}" style="width:40px;height:40px;border-radius:8px;object-fit:contain;background:#fff;border:1px solid var(--border)">` : `<div style="width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:14px">${m.name.charAt(0)}</div>`}
-        <div style="flex:1">
+        ${m.logo ? `<img src="${m.logo}" style="width:44px;height:44px;border-radius:10px;object-fit:contain;background:#fff;border:1px solid var(--border);padding:2px">` :
+          `<div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:16px">${m.name.charAt(0)}</div>`}
+        <div style="flex:1;min-width:0">
           <div style="font-weight:700;font-size:15px">${m.name}</div>
-          <div style="font-size:12px;color:var(--muted)">${m.email || ''} ${m.tel ? '· ' + m.tel : ''}</div>
-          <div style="font-size:11px;margin-top:2px"><span style="color:${m.active?'var(--green)':'var(--red)'}">● ${m.active?'Aktiv':'Deaktiviert'}</span> · Admin: ${m.adminUser}</div>
+          <div style="font-size:11px;color:var(--muted);font-family:monospace">${m.id}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${m.email || ''} ${m.tel ? '· ' + m.tel : ''}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:11px;font-weight:700;color:${m.active && !isExpired ? 'var(--green)' : 'var(--red)'}">
+            ${!m.active ? '⛔ Deaktiviert' : isExpired ? '⏰ Abgelaufen' : '✅ Aktiv'}
+          </div>
+          <div style="font-size:10px;color:var(--muted)">👥 ${m.maxFahrer || 5} Lizenzen</div>
+          ${daysLeft !== null && !isExpired ? `<div style="font-size:10px;color:${daysLeft < 30 ? 'var(--red)' : 'var(--muted)'}">📅 ${daysLeft}d</div>` : ''}
         </div>
       </div>
     `;
@@ -1537,25 +1635,34 @@ function renderMandantenList() {
 function openAddMandant() {
   document.getElementById('modal-mandant-title').textContent = 'Mandant anlegen';
   document.getElementById('modal-mandant-id').value = '';
+  document.getElementById('m-id-display').style.display = 'none';
   ['m-name','m-adresse','m-email','m-tel','m-admin-user','m-admin-pass'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('m-max-fahrer').value = '5';
+  // Default expiry: 1 year from now
+  const d = new Date(); d.setFullYear(d.getFullYear() + 1);
+  document.getElementById('m-gueltig-bis').value = d.toISOString().split('T')[0];
   document.getElementById('m-status').value = 'true';
   document.getElementById('m-logo-preview').innerHTML = '';
-  document.getElementById('delete-mandant-btn').style.display = 'none';
+  mandantLogoData = '';
   openModal('modal-mandant');
 }
 
 function openEditMandant(m) {
   document.getElementById('modal-mandant-title').textContent = 'Mandant bearbeiten';
   document.getElementById('modal-mandant-id').value = m.id;
+  document.getElementById('m-id-display').style.display = 'block';
+  document.getElementById('m-id-text').textContent = m.id;
   document.getElementById('m-name').value = m.name || '';
   document.getElementById('m-adresse').value = m.adresse || '';
   document.getElementById('m-email').value = m.email || '';
   document.getElementById('m-tel').value = m.tel || '';
   document.getElementById('m-admin-user').value = m.adminUser || '';
   document.getElementById('m-admin-pass').value = m.adminPass || '';
+  document.getElementById('m-max-fahrer').value = m.maxFahrer || 5;
+  document.getElementById('m-gueltig-bis').value = m.gueltigBis || '';
   document.getElementById('m-status').value = String(m.active !== false);
-  document.getElementById('m-logo-preview').innerHTML = m.logo ? `<img src="${m.logo}" style="max-height:60px;border-radius:8px;border:1px solid var(--border)">` : '';
-  document.getElementById('delete-mandant-btn').style.display = 'block';
+  document.getElementById('m-logo-preview').innerHTML = m.logo ? `<img src="${m.logo}" style="max-height:50px;border-radius:8px;border:1px solid var(--border)">` : '';
+  mandantLogoData = '';
   openModal('modal-mandant');
 }
 
@@ -1566,47 +1673,98 @@ function previewMandantLogo(event) {
   const reader = new FileReader();
   reader.onload = e => {
     mandantLogoData = e.target.result;
-    document.getElementById('m-logo-preview').innerHTML = `<img src="${mandantLogoData}" style="max-height:60px;border-radius:8px;border:1px solid var(--border)">`;
+    document.getElementById('m-logo-preview').innerHTML = `<img src="${mandantLogoData}" style="max-height:50px;border-radius:8px;border:1px solid var(--border)">`;
   };
   reader.readAsDataURL(file);
 }
 
 function saveMandant() {
-  const id = document.getElementById('modal-mandant-id').value;
+  const existingId = document.getElementById('modal-mandant-id').value;
   const name = document.getElementById('m-name').value.trim();
   const adminUser = document.getElementById('m-admin-user').value.trim();
   const adminPass = document.getElementById('m-admin-pass').value;
   if (!name || !adminUser || !adminPass) { showToast('⚠️ Pflichtfelder ausfüllen', 'error'); return; }
+
+  const existingMandant = existingId ? DB.mandanten.find(m => m.id === existingId) : null;
   const data = {
-    name, adresse: document.getElementById('m-adresse').value.trim(),
+    id: existingId || generateMandantId(),
+    name,
+    adresse: document.getElementById('m-adresse').value.trim(),
     email: document.getElementById('m-email').value.trim(),
     tel: document.getElementById('m-tel').value.trim(),
     adminUser, adminPass,
+    maxFahrer: parseInt(document.getElementById('m-max-fahrer').value) || 5,
+    gueltigBis: document.getElementById('m-gueltig-bis').value,
     active: document.getElementById('m-status').value === 'true',
-    logo: mandantLogoData || (id ? DB.mandanten.find(m=>m.id===id)?.logo || '' : '')
+    logo: mandantLogoData || (existingMandant ? existingMandant.logo || '' : ''),
+    emailSettings: existingMandant ? (existingMandant.emailSettings || {}) : {},
+    createdAt: existingMandant ? existingMandant.createdAt : new Date().toISOString()
   };
-  if (id) {
-    const idx = DB.mandanten.findIndex(m => m.id === id);
-    DB.mandanten[idx] = { ...DB.mandanten[idx], ...data };
+
+  if (existingId) {
+    const idx = DB.mandanten.findIndex(m => m.id === existingId);
+    DB.mandanten[idx] = data;
     showToast('✅ Mandant gespeichert', 'success');
   } else {
-    const newId = 'm' + Date.now();
-    DB.mandanten.push({ id: newId, ...data });
-    showToast('✅ Mandant angelegt', 'success');
+    DB.mandanten.push(data);
+    showToast('✅ Mandant angelegt: ' + data.id, 'success');
   }
+
+  // Save to Firebase
+  if (firebaseDB) firebaseDB.ref('mandanten/' + data.id + '/info').set(data);
+
   mandantLogoData = '';
   closeModal('modal-mandant');
   refreshSuperAdmin();
 }
 
-function deleteMandant() {
-  const id = document.getElementById('modal-mandant-id').value;
-  if (!confirm('Mandant wirklich löschen?')) return;
-  const idx = DB.mandanten.findIndex(m => m.id === id);
-  DB.mandanten.splice(idx, 1);
-  closeModal('modal-mandant');
-  refreshSuperAdmin();
-  showToast('🗑 Mandant gelöscht', 'success');
+// No delete - only deactivate (handled via status in saveMandant)
+
+// Check mandant license when adding driver
+function checkLicense() {
+  if (!currentMandant) return true;
+  const mandantDrivers = DB.drivers.filter(d => d.mandantId === currentMandant.id && d.status === 'active').length;
+  const maxFahrer = currentMandant.maxFahrer || 5;
+  if (mandantDrivers >= maxFahrer) {
+    showToast('⚠️ Lizenz-Limit erreicht! Max. ' + maxFahrer + ' Fahrer.', 'error');
+    // Notify superadmin via email
+    const saBody = 'Mandant: ' + currentMandant.name + ' (' + currentMandant.id + ')\n' +
+      'Admin: ' + currentUser.username + '\n' +
+      'Hat versucht einen weiteren Fahrer anzulegen.\n' +
+      'Lizenz-Limit: ' + maxFahrer + ' Fahrer\n' +
+      'Aktuell: ' + mandantDrivers + ' aktive Fahrer\n\n' +
+      'Bitte Lizenz erweitern.';
+    sendEmailWithPDF(SUPERADMIN_EMAIL, '⚠️ Lizenz-Limit – ' + currentMandant.name, saBody, 'license');
+    // Show modal to user
+    setTimeout(() => {
+      alert('Sie haben das Lizenz-Limit von ' + maxFahrer + ' Fahrern erreicht.\n\nBitte wenden Sie sich an:\ninfo@nm-it-solutions.de');
+    }, 100);
+    return false;
+  }
+  return true;
+}
+
+// Check mandant expiry on login
+function checkMandantExpiry() {
+  if (!currentMandant) return true;
+  if (!currentMandant.active) {
+    showToast('⛔ Ihr Konto ist deaktiviert. Bitte wenden Sie sich an NM-IT Solutions.', 'error');
+    setTimeout(doLogout, 2000);
+    return false;
+  }
+  if (currentMandant.gueltigBis) {
+    const expires = new Date(currentMandant.gueltigBis);
+    if (expires < new Date()) {
+      showToast('⏰ Ihre Lizenz ist abgelaufen. Bitte wenden Sie sich an NM-IT Solutions.', 'error');
+      setTimeout(doLogout, 3000);
+      return false;
+    }
+    const daysLeft = Math.ceil((expires - new Date()) / 86400000);
+    if (daysLeft <= 30) {
+      showToast('⚠️ Ihre Lizenz läuft in ' + daysLeft + ' Tagen ab!', 'error');
+    }
+  }
+  return true;
 }
 
 // ─── NOTIFICATION STORAGE (localStorage für geräteübergreifende Nachrichten) ───
@@ -1668,6 +1826,11 @@ function saveO365Settings() {
     pubkey: document.getElementById('o365-pubkey').value.trim()
   };
   localStorage.setItem('o365settings', JSON.stringify(emailSettings));
+  // Save to mandant in Firebase
+  if (firebaseDB && currentMandant) {
+    firebaseDB.ref('mandanten/' + currentMandant.id + '/info/emailSettings').set(emailSettings);
+    currentMandant.emailSettings = emailSettings;
+  }
   showToast('✅ E-Mail Einstellungen gespeichert', 'success');
   closeModal('modal-o365');
   if (emailSettings.pubkey) initEmailJS();
@@ -1816,7 +1979,7 @@ function sendDriverMessage() {
   };
   
   if (firebaseDB) {
-    firebaseDB.ref('driverMessages/' + msg.id).set(msg);
+    const dmmid = currentMandant ? currentMandant.id : 'm1'; firebaseDB.ref('mandanten/' + dmmid + '/driverMessages/' + msg.id).set(msg);
   } else {
     DB.driverMessages.push(msg);
     saveDriveMessageToStorage(msg);
@@ -1861,7 +2024,7 @@ let currentCheckForStatus = null;
 function setCheckStatus(status) {
   if (!currentCheckForStatus) return;
   currentCheckForStatus.status = status;
-  if (firebaseDB) firebaseDB.ref('checks/' + currentCheckForStatus.id + '/status').set(status);
+  if (firebaseDB) firebaseDB.ref('mandanten/' + (currentCheckForStatus.mandantId || 'm1') + '/checks/' + currentCheckForStatus.id + '/status').set(status);
   showToast(status === 'bearbeitet' ? '✅ Als bearbeitet markiert' : '🔄 Status zurückgesetzt', 'success');
   closeModal('modal-kontrolle');
   renderKontrollen();
@@ -1871,7 +2034,7 @@ function setCheckStatus(status) {
 function setPODStatus(status) {
   if (!currentPODForForward) return;
   currentPODForForward.status = status;
-  if (firebaseDB) firebaseDB.ref('pods/' + currentPODForForward.id + '/status').set(status);
+  if (firebaseDB) firebaseDB.ref('mandanten/' + (currentPODForForward.mandantId || 'm1') + '/pods/' + currentPODForForward.id + '/status').set(status);
   showToast(status === 'bearbeitet' ? '✅ Als bearbeitet markiert' : '🔄 Status zurückgesetzt', 'success');
   closeModal('modal-pod');
   renderPODs();
@@ -1969,6 +2132,11 @@ function doLogin() {
     // Load mandant data
     const mandant = DB.mandanten.find(m => m.id === (admin.mandantId || 'm1'));
     currentMandant = mandant || DB.mandanten[0];
+    if (!checkMandantExpiry()) return;
+    // Load mandant-specific email settings
+    if (currentMandant && currentMandant.emailSettings) {
+      emailSettings = { ...emailSettings, ...currentMandant.emailSettings };
+    }
     goTo('screen-admin-home');
     loadO365Settings(); initEmailJS(); loadDriversFromLocal();
     setTimeout(() => { initFirebase(); setTimeout(setupDriversFirebaseSync, 1000); }, 500);
@@ -2097,12 +2265,16 @@ async function submitAbfahrt() {
     remark: document.getElementById(`remark-${i}`)?.value || '',
     photos: abfahrtPhotos[i] || []
   }));
+  const checkId = 'K-' + (currentMandant ? currentMandant.id : 'M0') + '-' + Date.now();
   const entry = {
-    id: 'c' + Date.now(),
+    id: checkId,
+    vorgangId: checkId,
     driverId: currentUser.id,
     driverName: currentUser.vorname + ' ' + currentUser.nachname,
+    mandantId: currentMandant ? currentMandant.id : 'm1',
     timestamp: new Date().toISOString(),
     answers, signature: sigData,
+    status: 'offen',
     offline: !isOnline
   };
   if (isOnline && firebaseDB) {
@@ -2131,7 +2303,8 @@ async function submitAbfahrt() {
     }));
     const sigThumb = entry.signature ? await makeThumbnail(entry.signature) : '';
     const entryForDB = { ...entry, answers: answersWithThumbs, signature: sigThumb };
-    firebaseDB.ref('checks/' + entry.id).set(entryForDB);
+    const mid = entry.mandantId || 'm1';
+    firebaseDB.ref('mandanten/' + mid + '/checks/' + entry.id).set(entryForDB);
     DB.checks.push(entry);
   } else if (isOnline) {
     DB.checks.push(entry);
@@ -2181,13 +2354,17 @@ function renderPodPhotos() {
 }
 
 function submitPOD() {
+  const podId = 'P-' + (currentMandant ? currentMandant.id : 'M0') + '-' + Date.now();
   const entry = {
-    id: 'p' + Date.now(),
+    id: podId,
+    vorgangId: podId,
     driverId: currentUser.id,
     driverName: currentUser.vorname + ' ' + currentUser.nachname,
+    mandantId: currentMandant ? currentMandant.id : 'm1',
     timestamp: new Date().toISOString(),
     photos: podPhotos,
     remarks: document.getElementById('pod-remarks').value,
+    status: 'offen',
     offline: !isOnline
   };
   // Save to Firebase or local
@@ -2209,7 +2386,8 @@ function submitPOD() {
     });
     Promise.all(entry.photos.map(p => makeThumbnail(p))).then(thumbs => {
       const entryForDB = { ...entry, photos: thumbs, photoCount: entry.photos.length, hasThumbs: true };
-      firebaseDB.ref('pods/' + entry.id).set(entryForDB);
+      const pmid = entry.mandantId || 'm1';
+      firebaseDB.ref('mandanten/' + pmid + '/pods/' + entry.id).set(entryForDB);
     });
     DB.pods.push(entry); // keep full version with photos locally
   } else if (isOnline) {
@@ -2878,14 +3056,16 @@ function saveDriver() {
     DB.drivers[idx] = { ...DB.drivers[idx], ...data };
     showToast('✅ Fahrer gespeichert', 'success');
   } else {
-    driverId = 'd' + Date.now();
-    DB.drivers.push({ id: driverId, ...data });
+    if (!checkLicense()) return;
+    driverId = 'F-' + (currentMandant ? currentMandant.id : 'M0') + '-' + Date.now();
+    DB.drivers.push({ id: driverId, ...data, mandantId: currentMandant ? currentMandant.id : 'm1' });
     showToast('✅ Fahrer angelegt', 'success');
   }
-  // Save to Firebase
+  // Save to Firebase under mandant path
   if (firebaseDB) {
     const driver = DB.drivers.find(d => d.id === driverId);
-    firebaseDB.ref('drivers/' + driverId).set(driver);
+    const mid = driver.mandantId || (currentMandant ? currentMandant.id : 'm1');
+    firebaseDB.ref('mandanten/' + mid + '/drivers/' + driverId).set(driver);
   }
   saveDriversToLocal();
   closeModal('modal-fahrer');
@@ -2947,6 +3127,10 @@ function openKontrolleDetail(c) {
   const maengel = c.answers ? c.answers.filter(a => a.answer === 'nein').length : 0;
   const ok = c.answers ? c.answers.filter(a => a.answer !== 'nein').length : 0;
   cont.innerHTML = `
+    <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:11px;font-family:monospace;color:var(--muted)">
+      Vorgang-ID: <strong style="color:var(--accent)">${p.vorgangId || p.id}</strong>
+      ${p.mandantId ? ' · Mandant: <strong>' + p.mandantId + '</strong>' : ''}
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
       <div style="background:var(--surface2);border-radius:10px;padding:10px">
         <div style="font-size:10px;color:var(--muted);margin-bottom:2px">Fahrer</div>
@@ -3041,6 +3225,10 @@ function openPODDetail(p) {
   // Check if photos are real base64 or placeholder strings
   const validPhotos = photos.filter(ph => ph && ph.startsWith('data:'));
   cont.innerHTML = `
+    <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:11px;font-family:monospace;color:var(--muted)">
+      Vorgang-ID: <strong style="color:var(--accent)">${p.vorgangId || p.id}</strong>
+      ${p.mandantId ? ' · Mandant: <strong>' + p.mandantId + '</strong>' : ''}
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
       <div style="background:var(--surface2);border-radius:10px;padding:10px">
         <div style="font-size:10px;color:var(--muted);margin-bottom:2px">Fahrer</div>
@@ -3119,7 +3307,8 @@ async function sendNotification() {
   }
 
   if (firebaseDB) {
-    firebaseDB.ref('notifications/' + newNotif.id).set(newNotif);
+    const nmid = currentMandant ? currentMandant.id : 'm1';
+    firebaseDB.ref('mandanten/' + nmid + '/notifications/' + newNotif.id).set(newNotif);
   } else {
     DB.notifications.push(newNotif);
     saveNotificationsToStorage();
@@ -3173,7 +3362,7 @@ function markRead(id, btn) {
   const n = DB.notifications.find(n => n.id === id);
   if (n) {
     n.read = true;
-    if (firebaseDB) firebaseDB.ref('notifications/' + id + '/read').set(true);
+    if (firebaseDB) { const rmid = currentMandant ? currentMandant.id : 'm1'; firebaseDB.ref('mandanten/' + rmid + '/notifications/' + id + '/read').set(true); }
     else saveNotificationsToStorage();
   }
   btn.parentElement.classList.add('read');
