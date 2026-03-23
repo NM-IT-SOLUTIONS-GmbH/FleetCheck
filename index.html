@@ -594,6 +594,147 @@
 </div>
 
 <!-- ═══════════════════════════════════════
+     SCREEN: SUPERADMIN QUESTIONS EDITOR
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-sa-questions">
+  <div class="topbar">
+    <button class="btn btn-secondary btn-sm btn-icon" onclick="goBack()">←</button>
+    <div style="flex:1;margin-left:12px">
+      <div class="topbar-title" id="sa-q-title">Fragen bearbeiten</div>
+      <div class="topbar-sub" id="sa-q-subtitle"></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="saveQuestions()">💾 Speichern</button>
+  </div>
+  <div class="page-content">
+    <div style="background:rgba(26,122,191,0.08);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--muted);line-height:1.5">
+      Hier können Sie die Prüffragen für die Abfahrtskontrolle dieses Mandanten anpassen. Jede Frage erscheint beim Fahrer mit den Antwortoptionen <strong style="color:var(--text)">Ja / In Ordnung</strong> und <strong style="color:var(--text)">Nein / Mängel</strong>.
+    </div>
+    <div id="questions-editor-list"></div>
+    <button class="btn btn-secondary mt-8" onclick="addQuestion()" style="margin-bottom:20px">+ Frage hinzufügen</button>
+    <button class="btn btn-secondary" onclick="resetQuestionsToDefault()" style="margin-bottom:20px;border-color:var(--red);color:var(--red)">↺ Standard-Fragen wiederherstellen</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     SCREEN: FUHRPARK DASHBOARD
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-fuhrpark">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">🚗 Fuhrpark</div>
+      <div class="topbar-sub" id="fuhrpark-sub">Fahrzeugverwaltung</div>
+    </div>
+    <div class="flex gap-8">
+      <button class="btn btn-secondary btn-sm" onclick="fuhrparkTab('uebersicht')" id="fp-tab-u" style="font-size:12px">📊</button>
+      <button class="btn btn-secondary btn-sm" onclick="fuhrparkTab('kalender')" id="fp-tab-k" style="font-size:12px">📅</button>
+      <button class="btn btn-secondary btn-sm" onclick="doLogout()">Abmelden</button>
+    </div>
+  </div>
+  <div class="page-content">
+    <!-- Übersicht Tab -->
+    <div id="fp-view-uebersicht">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+        <div style="background:linear-gradient(135deg,#1a7abf,#1567a8);border-radius:14px;padding:14px">
+          <div style="font-size:10px;color:rgba(255,255,255,0.7)">Fahrzeuge gesamt</div>
+          <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:#fff" id="fp-stat-total">0</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#d93025,#b52920);border-radius:14px;padding:14px">
+          <div style="font-size:10px;color:rgba(255,255,255,0.7)">Fällige Termine</div>
+          <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:#fff" id="fp-stat-faellig">0</div>
+        </div>
+      </div>
+      <!-- Fahrzeug Liste -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700">Fahrzeuge</div>
+        <button class="btn btn-primary btn-sm" onclick="openAddFahrzeug()">+ Neu</button>
+      </div>
+      <div id="fahrzeug-list"></div>
+    </div>
+    <!-- Kalender Tab -->
+    <div id="fp-view-kalender" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <button class="btn btn-secondary btn-sm btn-icon" onclick="prevMonth()">‹</button>
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700" id="fp-cal-title"></div>
+        <button class="btn btn-secondary btn-sm btn-icon" onclick="nextMonth()">›</button>
+      </div>
+      <div id="fp-calendar"></div>
+      <div style="margin-top:16px">
+        <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:10px">Termine dieses Monats</div>
+        <div id="fp-termine-list"></div>
+      </div>
+    </div>
+  </div>
+  <button class="fab" onclick="openAddTermin()" id="fp-fab">+</button>
+</div>
+
+<!-- ═══════════════════════════════════════
+     SCREEN: DRIVER DOCUMENTS
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-driver-docs">
+  <div class="topbar">
+    <button class="btn btn-secondary btn-sm btn-icon" onclick="goBack()">←</button>
+    <div style="flex:1;margin-left:12px">
+      <div class="topbar-title">📋 Meine Dokumente</div>
+    </div>
+  </div>
+  <div class="page-content">
+    <!-- Führerschein -->
+    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700">🪪 Führerschein</div>
+          <div id="fs-status-text" style="font-size:12px;color:var(--muted);margin-top:2px">Noch nicht hochgeladen</div>
+        </div>
+        <div id="fs-validity-badge" style="display:none;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700"></div>
+      </div>
+      <div id="fs-preview" style="margin-bottom:12px;display:none">
+        <img id="fs-img" style="width:100%;border-radius:10px;border:1px solid var(--border)">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+          <div style="background:var(--surface2);border-radius:8px;padding:8px">
+            <div style="font-size:10px;color:var(--muted)">Gültig bis</div>
+            <div style="font-weight:700;font-size:13px" id="fs-gueltig">-</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:8px">
+            <div style="font-size:10px;color:var(--muted)">Zuletzt hochgeladen</div>
+            <div style="font-weight:700;font-size:13px" id="fs-uploaded">-</div>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="captureDocument('fuehrerschein')">📷 Jetzt fotografieren</button>
+      <p style="font-size:11px;color:var(--muted);margin-top:8px">⚠️ Bitte fotografieren Sie Ihren Führerschein direkt mit der Kamera — kein Upload aus der Galerie.</p>
+    </div>
+
+    <!-- Fahrerkarte -->
+    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700">💳 Fahrerkarte</div>
+          <div id="fk-status-text" style="font-size:12px;color:var(--muted);margin-top:2px">Noch nicht hochgeladen</div>
+        </div>
+        <div id="fk-validity-badge" style="display:none;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700"></div>
+      </div>
+      <div id="fk-preview" style="margin-bottom:12px;display:none">
+        <img id="fk-img" style="width:100%;border-radius:10px;border:1px solid var(--border)">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+          <div style="background:var(--surface2);border-radius:8px;padding:8px">
+            <div style="font-size:10px;color:var(--muted)">Gültig bis</div>
+            <div style="font-weight:700;font-size:13px" id="fk-gueltig">-</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:8px">
+            <div style="font-size:10px;color:var(--muted)">Zuletzt hochgeladen</div>
+            <div style="font-weight:700;font-size:13px" id="fk-uploaded">-</div>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="captureDocument('fahrerkarte')">📷 Jetzt fotografieren</button>
+    </div>
+
+    <!-- Hidden camera inputs (capture=camera forces camera, no gallery) -->
+    <input type="file" id="doc-capture-input" accept="image/*" capture="camera" onchange="handleDocCapture(event)" style="display:none">
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
      SCREEN: DRIVER HOME
 ═══════════════════════════════════════ -->
 <div class="screen" id="screen-driver-home">
@@ -623,21 +764,32 @@
       </div>
     </div>
 
-    <div class="big-btn" onclick="goTo('screen-abfahrt')">
+    <div id="btn-abfahrt" class="big-btn" onclick="goTo('screen-abfahrt')" style="display:none">
       <div class="bb-icon orange">🚛</div>
       <div class="bb-title">Abfahrtskontrolle</div>
       <div class="bb-desc">Fahrzeugzustand prüfen und dokumentieren</div>
     </div>
-    <div class="big-btn" onclick="goTo('screen-pod')">
+    <div id="btn-pod" class="big-btn" onclick="goTo('screen-pod')" style="display:none">
       <div class="bb-icon blue">📄</div>
       <div class="bb-title">POD hochladen</div>
       <div class="bb-desc">Liefernachweise und Belege einscannen</div>
     </div>
-    <div class="big-btn" onclick="goTo('screen-driver-messages')" style="position:relative">
+    <div id="btn-nachrichten" class="big-btn" onclick="goTo('screen-driver-messages')" style="display:none;position:relative">
       <div class="notif-dot" id="msg-notif-dot"></div>
       <div class="bb-icon" style="background:rgba(46,204,113,0.15)">💬</div>
       <div class="bb-title">Nachrichten</div>
       <div class="bb-desc">Nachrichten empfangen und an Admin senden</div>
+    </div>
+    <div id="btn-fahrerdokumente" class="big-btn" onclick="goTo('screen-fahrerdokumente')" style="display:none">
+      <div class="bb-icon" style="background:rgba(155,89,182,0.15)">📋</div>
+      <div class="bb-title">Meine Dokumente</div>
+      <div class="bb-desc">Führerschein & Fahrerkarte verwalten</div>
+    </div>
+    <div class="big-btn" onclick="goTo('screen-driver-docs')" id="docs-btn" style="position:relative">
+      <div class="notif-dot" id="docs-notif-dot"></div>
+      <div class="bb-icon" style="background:rgba(155,89,182,0.15)">📋</div>
+      <div class="bb-title">Meine Dokumente</div>
+      <div class="bb-desc">Führerschein & Fahrerkarte verwalten</div>
     </div>
   </div>
 </div>
@@ -811,21 +963,25 @@
           <span class="ambi" style="background:rgba(46,158,87,0.15);color:var(--green)">👥</span>
           <span>Fahrer</span>
         </button>
-        <button class="admin-menu-btn" onclick="adminNav('kontrollen')">
+        <button class="admin-menu-btn" id="menu-btn-kontrollen" onclick="adminNav('kontrollen')" style="display:none">
           <span class="ambi" style="background:rgba(245,166,35,0.15);color:#e8891a">📋</span>
           <span>Kontrollen</span>
         </button>
-        <button class="admin-menu-btn" onclick="adminNav('pods')">
+        <button class="admin-menu-btn" id="menu-btn-pods" onclick="adminNav('pods')" style="display:none">
           <span class="ambi" style="background:rgba(59,130,246,0.15);color:var(--blue)">📄</span>
           <span>PODs</span>
         </button>
-        <button class="admin-menu-btn" onclick="adminNav('nachrichten')">
+        <button class="admin-menu-btn" id="menu-btn-nachrichten" onclick="adminNav('nachrichten')" style="display:none">
           <span class="ambi" style="background:rgba(155,89,182,0.15);color:#9b59b6">📨</span>
           <span>Nachrichten</span>
         </button>
-        <button class="admin-menu-btn" onclick="adminNav('fahrermsgs')">
+        <button class="admin-menu-btn" id="menu-btn-fahrermsgs" onclick="adminNav('fahrermsgs')" style="display:none">
           <span class="ambi" style="background:rgba(231,76,60,0.15);color:var(--red)">💬</span>
           <span>Eingang</span>
+        </button>
+        <button class="admin-menu-btn" id="menu-btn-fuhrpark" onclick="adminNav('fuhrpark')" style="display:none">
+          <span class="ambi" style="background:rgba(30,158,87,0.15);color:var(--green)">🚗</span>
+          <span>Fuhrpark</span>
         </button>
         <button class="admin-menu-btn" onclick="adminNav('einstellungen')">
           <span class="ambi" style="background:rgba(100,100,100,0.15);color:var(--muted)">⚙️</span>
@@ -907,13 +1063,21 @@
           <span style="font-size:22px">➕</span>
           <span>Fahrer anlegen</span>
         </button>
-        <button class="quick-action-btn" onclick="adminNav('nachrichten')">
+        <button class="quick-action-btn" id="qa-nachrichten" onclick="adminNav('nachrichten')" style="display:none">
           <span style="font-size:22px">📨</span>
           <span>Nachricht senden</span>
         </button>
-        <button class="quick-action-btn" onclick="adminNav('kontrollen')">
+        <button class="quick-action-btn" id="qa-kontrollen" onclick="adminNav('kontrollen')" style="display:none">
           <span style="font-size:22px">📋</span>
           <span>Letzte Kontrollen</span>
+        </button>
+        <button class="quick-action-btn" id="qa-pods" onclick="adminNav('pods')" style="display:none">
+          <span style="font-size:22px">📄</span>
+          <span>PODs</span>
+        </button>
+        <button class="quick-action-btn" id="qa-fuhrpark" onclick="adminNav('fuhrpark')" style="display:none">
+          <span style="font-size:22px">🚗</span>
+          <span>Fuhrpark</span>
         </button>
         <button class="quick-action-btn" onclick="openModal('modal-o365')">
           <span style="font-size:22px">⚙️</span>
@@ -993,6 +1157,15 @@
       </div>
       <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:8px">Gesendete Nachrichten</div>
       <div id="sent-notifs-list"></div>
+    </div>
+
+    <!-- ═══ FUHRPARK VIEW ═══ -->
+    <div id="admin-view-fuhrpark" style="display:none">
+      <div style="text-align:center;padding:40px 20px;color:var(--muted)">
+        <div style="font-size:48px;margin-bottom:12px">🚗</div>
+        <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:8px">Fuhrparkverwaltung</div>
+        <div style="font-size:13px">Kommt in der nächsten Version</div>
+      </div>
     </div>
 
     <!-- ═══ EINGANG VIEW ═══ -->
@@ -1123,6 +1296,59 @@
       </select>
     </div>
 
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:12px">📦 Module & Funktionen</div>
+      <div style="display:grid;gap:10px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;transition:border-color 0.2s" id="module-label-abfahrt">
+          <input type="checkbox" id="m-mod-abfahrt" onchange="highlightModule('abfahrt',this.checked)" style="width:18px;height:18px;accent-color:var(--accent)">
+          <span style="font-size:22px">🚛</span>
+          <div>
+            <div style="font-weight:700;font-size:13px">Modul 1 – Abfahrtskontrolle</div>
+            <div style="font-size:11px;color:var(--muted)">Tägliche Fahrzeugprüfung mit Fragebogen, Fotos, Unterschrift</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;transition:border-color 0.2s" id="module-label-pod">
+          <input type="checkbox" id="m-mod-pod" onchange="highlightModule('pod',this.checked)" style="width:18px;height:18px;accent-color:var(--accent)">
+          <span style="font-size:22px">📄</span>
+          <div>
+            <div style="font-weight:700;font-size:13px">Modul 2 – POD / Lieferbelege</div>
+            <div style="font-size:11px;color:var(--muted)">Lieferscheine einscannen, OCR-Erkennung, PDF-Versand</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;transition:border-color 0.2s" id="module-label-nachrichten">
+          <input type="checkbox" id="m-mod-nachrichten" onchange="highlightModule('nachrichten',this.checked)" style="width:18px;height:18px;accent-color:var(--accent)">
+          <span style="font-size:22px">💬</span>
+          <div>
+            <div style="font-weight:700;font-size:13px">Modul 3 – Nachrichten</div>
+            <div style="font-size:11px;color:var(--muted)">Admin ↔ Fahrer Kommunikation, Anhänge, Benachrichtigungen</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;transition:border-color 0.2s" id="module-label-fuhrpark">
+          <input type="checkbox" id="m-mod-fuhrpark" onchange="highlightModule('fuhrpark',this.checked)" style="width:18px;height:18px;accent-color:var(--accent)">
+          <span style="font-size:22px">🚗</span>
+          <div>
+            <div style="font-weight:700;font-size:13px">Modul 4 – Fuhrparkverwaltung</div>
+            <div style="font-size:11px;color:var(--muted)">TÜV, ASP, Wartungstermine, Kalender, Wochen-/Monatsübersicht</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;transition:border-color 0.2s" id="module-label-fahrerdokumente">
+          <input type="checkbox" id="m-mod-fahrerdokumente" onchange="highlightModule('fahrerdokumente',this.checked)" style="width:18px;height:18px;accent-color:var(--accent)">
+          <span style="font-size:22px">📋</span>
+          <div>
+            <div style="font-weight:700;font-size:13px">Modul 5 – Fahrerdokumente</div>
+            <div style="font-size:11px;color:var(--muted)">Führerschein, Fahrerkarte, Ablaufdatum, Prüfintervall, Kamerafoto</div>
+          </div>
+        </label>
+      </div>
+
+      <!-- Questions config (shown when Modul 1 active) -->
+      <div id="m-questions-section" style="display:none;margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
+        <div style="font-size:12px;font-weight:700;margin-bottom:8px">📝 Fragen für Abfahrtskontrolle</div>
+        <div id="m-questions-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+        <button class="btn btn-secondary btn-sm" onclick="addMandantQuestion()" style="width:100%">+ Frage hinzufügen</button>
+      </div>
+    </div>
+
     <button class="btn btn-primary" onclick="saveMandant()">💾 Speichern</button>
     <button class="btn btn-secondary mt-8" onclick="closeModal('modal-mandant')">Abbrechen</button>
     <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px">Mandanten können nicht gelöscht werden — nur deaktiviert.</p>
@@ -1189,6 +1415,59 @@
       <button class="btn btn-secondary btn-sm" onclick="togglePODForward()">📧 Weiterleiten</button>
       <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-pod')">Schließen</button>
     </div>
+  </div>
+</div>
+
+<!-- ─── MODAL: FAHRZEUG ─── -->
+<div class="modal-overlay" id="modal-fahrzeug">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-fahrzeug-title">Fahrzeug anlegen</div>
+    <input type="hidden" id="fz-id">
+    <div class="form-group"><label>Kennzeichen *</label><input type="text" id="fz-kennzeichen" placeholder="E-NM 1234" style="text-transform:uppercase"></div>
+    <div class="form-group"><label>Hersteller / Modell</label><input type="text" id="fz-modell" placeholder="Mercedes Actros"></div>
+    <div class="form-group"><label>Fahrzeugtyp</label>
+      <select id="fz-typ" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-size:14px">
+        <option>Kühlfahrzeug</option><option>Tiefkühlfahrzeug</option><option>Transporter</option><option>LKW</option><option>Sonstiges</option>
+      </select>
+    </div>
+    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin:12px 0 8px">📋 Termine & Fristen</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="form-group"><label>TÜV fällig</label><input type="date" id="fz-tuev"></div>
+      <div class="form-group"><label>ASP fällig</label><input type="date" id="fz-asp"></div>
+      <div class="form-group"><label>UVV fällig</label><input type="date" id="fz-uvv"></div>
+      <div class="form-group"><label>Versicherung</label><input type="date" id="fz-versicherung"></div>
+    </div>
+    <div id="fz-extra-fields"></div>
+    <button class="btn btn-secondary btn-sm mt-8" onclick="addExtraFahrzeugField()" style="font-size:12px">+ Weiteres Feld hinzufügen</button>
+    <button class="btn btn-primary mt-8" onclick="saveFahrzeug()">💾 Speichern</button>
+    <button class="btn btn-danger mt-8" id="fz-delete-btn" onclick="deleteFahrzeug()" style="display:none">🗑 Löschen</button>
+    <button class="btn btn-secondary mt-8" onclick="closeModal('modal-fahrzeug')">Abbrechen</button>
+  </div>
+</div>
+
+<!-- ─── MODAL: TERMIN ─── -->
+<div class="modal-overlay" id="modal-termin">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Termin eintragen</div>
+    <input type="hidden" id="termin-id">
+    <div class="form-group"><label>Fahrzeug *</label>
+      <select id="termin-fahrzeug" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-size:14px">
+        <option value="">-- Fahrzeug wählen --</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Termin-Typ *</label>
+      <select id="termin-typ" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-size:14px">
+        <option>TÜV</option><option>ASP</option><option>UVV</option><option>Versicherung</option><option>Wartung</option><option>Sonstiges</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Datum *</label><input type="date" id="termin-datum"></div>
+    <div class="form-group"><label>Uhrzeit</label><input type="time" id="termin-uhrzeit"></div>
+    <div class="form-group"><label>Bemerkung</label><textarea id="termin-bemerkung" placeholder="z.B. Hauptuntersuchung, Werkstatt Müller..."></textarea></div>
+    <button class="btn btn-primary" onclick="saveTermin()">💾 Speichern</button>
+    <button class="btn btn-danger mt-8" id="termin-delete-btn" onclick="deleteTermin()" style="display:none">🗑 Löschen</button>
+    <button class="btn btn-secondary mt-8" onclick="closeModal('modal-termin')">Abbrechen</button>
   </div>
 </div>
 
@@ -1401,6 +1680,14 @@ const DB = {
       gueltigBis: '2099-12-31',
       maxFahrer: 10,
       emailSettings: { from: '', serviceId: '', templateId: '', pubkey: '', maengelEmail: '' },
+      questions: null,
+      modules: {
+        abfahrt: true,
+        pod: true,
+        nachrichten: true,
+        fuhrpark: false,
+        fahrerdokumente: false
+      },
       createdAt: new Date().toISOString()
     }
   ],
@@ -1418,7 +1705,7 @@ const DB = {
   driverMessages: []
 };
 
-const QUESTIONS = [
+const DEFAULT_QUESTIONS = [
   'Fahrzeug außen ohne sichtbare Schäden (Karosserie, Aufbau, Türen)?',
   'Reifen und Reifendruck in Ordnung (inkl. Reserverad)?',
   'Beleuchtung vollständig funktionsfähig (Scheinwerfer, Bremslicht, Blinker)?',
@@ -1450,6 +1737,16 @@ const QUESTIONS = [
     { id: 'n2', from: 'Admin', to: 'all', message: 'Wartung aller Fahrzeuge am Freitag. Bitte bis 14:00 Uhr zurück im Depot.', timestamp: new Date(now - 7200000).toISOString(), read: false }
   ];
 })();
+
+// Get questions for current mandant
+function getMandantQuestions() {
+  if (currentMandant && currentMandant.questions && currentMandant.questions.length > 0) {
+    return currentMandant.questions;
+  }
+  return DEFAULT_QUESTIONS;
+}
+// Alias for backward compatibility
+const QUESTIONS = DEFAULT_QUESTIONS;
 
 // ─── APP STATE ───────────────────────────────────────────────────
 let currentUser = null;
@@ -1638,12 +1935,19 @@ function openAddMandant() {
   document.getElementById('m-id-display').style.display = 'none';
   ['m-name','m-adresse','m-email','m-tel','m-admin-user','m-admin-pass'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('m-max-fahrer').value = '5';
-  // Default expiry: 1 year from now
   const d = new Date(); d.setFullYear(d.getFullYear() + 1);
   document.getElementById('m-gueltig-bis').value = d.toISOString().split('T')[0];
   document.getElementById('m-status').value = 'true';
   document.getElementById('m-logo-preview').innerHTML = '';
   mandantLogoData = '';
+  // Default modules
+  const defMods = { abfahrt: true, pod: true, nachrichten: true, fuhrpark: false, fahrerdokumente: false };
+  Object.keys(defMods).forEach(m => {
+    const el = document.getElementById('m-mod-' + m);
+    if (el) { el.checked = defMods[m]; highlightModule(m, defMods[m]); }
+  });
+  document.getElementById('m-questions-section').style.display = 'block';
+  renderMandantQuestions(null);
   openModal('modal-mandant');
 }
 
@@ -1663,6 +1967,14 @@ function openEditMandant(m) {
   document.getElementById('m-status').value = String(m.active !== false);
   document.getElementById('m-logo-preview').innerHTML = m.logo ? `<img src="${m.logo}" style="max-height:50px;border-radius:8px;border:1px solid var(--border)">` : '';
   mandantLogoData = '';
+  // Load modules
+  const mods = m.modules || { abfahrt: true, pod: true, nachrichten: true, fuhrpark: false, fahrerdokumente: false };
+  Object.keys(mods).forEach(mod => {
+    const el = document.getElementById('m-mod-' + mod);
+    if (el) { el.checked = mods[mod]; highlightModule(mod, mods[mod]); }
+  });
+  document.getElementById('m-questions-section').style.display = mods.abfahrt ? 'block' : 'none';
+  renderMandantQuestions(m.questions);
   openModal('modal-mandant');
 }
 
@@ -1686,6 +1998,15 @@ function saveMandant() {
   if (!name || !adminUser || !adminPass) { showToast('⚠️ Pflichtfelder ausfüllen', 'error'); return; }
 
   const existingMandant = existingId ? DB.mandanten.find(m => m.id === existingId) : null;
+  const modules = {};
+  ['abfahrt','pod','nachrichten','fuhrpark','fahrerdokumente'].forEach(m => {
+    const el = document.getElementById('m-mod-' + m);
+    modules[m] = el ? el.checked : false;
+  });
+  // Collect questions
+  const questionInputs = document.querySelectorAll('.mandant-question-input');
+  const questions = Array.from(questionInputs).map(i => i.value.trim()).filter(q => q.length > 0);
+
   const data = {
     id: existingId || generateMandantId(),
     name,
@@ -1698,6 +2019,8 @@ function saveMandant() {
     active: document.getElementById('m-status').value === 'true',
     logo: mandantLogoData || (existingMandant ? existingMandant.logo || '' : ''),
     emailSettings: existingMandant ? (existingMandant.emailSettings || {}) : {},
+    modules,
+    questions: questions.length > 0 ? questions : null,
     createdAt: existingMandant ? existingMandant.createdAt : new Date().toISOString()
   };
 
@@ -1720,6 +2043,64 @@ function saveMandant() {
 
 // No delete - only deactivate (handled via status in saveMandant)
 
+// ─── MODULE HELPERS ──────────────────────────────────────────────
+function hasModule(mod) {
+  if (!currentMandant) return true; // default: all active
+  if (!currentMandant.modules) return true;
+  return currentMandant.modules[mod] === true;
+}
+
+function highlightModule(mod, active) {
+  const label = document.getElementById('module-label-' + mod);
+  if (label) label.style.borderColor = active ? 'var(--accent)' : 'var(--border)';
+  if (mod === 'abfahrt') {
+    const qs = document.getElementById('m-questions-section');
+    if (qs) qs.style.display = active ? 'block' : 'none';
+  }
+}
+
+function renderMandantQuestions(existingQuestions) {
+  const list = document.getElementById('m-questions-list');
+  if (!list) return;
+  const qs = existingQuestions || DEFAULT_QUESTIONS;
+  list.innerHTML = '';
+  qs.forEach((q, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:6px;align-items:center';
+    row.innerHTML = `
+      <span style="font-size:11px;color:var(--muted);min-width:20px;text-align:right">${i+1}.</span>
+      <input type="text" class="mandant-question-input" value="${q.replace(/"/g,'&quot;')}"
+        style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px">
+      <button onclick="this.parentElement.remove();renumberQuestions()" style="background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:0 4px">×</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function addMandantQuestion() {
+  const list = document.getElementById('m-questions-list');
+  if (!list) return;
+  const count = list.children.length + 1;
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:6px;align-items:center';
+  row.innerHTML = `
+    <span style="font-size:11px;color:var(--muted);min-width:20px;text-align:right">${count}.</span>
+    <input type="text" class="mandant-question-input" placeholder="Neue Frage eingeben..."
+      style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px">
+    <button onclick="this.parentElement.remove();renumberQuestions()" style="background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:0 4px">×</button>
+  `;
+  list.appendChild(row);
+  row.querySelector('input').focus();
+}
+
+function renumberQuestions() {
+  document.querySelectorAll('#m-questions-list > div').forEach((row, i) => {
+    const num = row.querySelector('span');
+    if (num) num.textContent = (i+1) + '.';
+  });
+}
+
+// ─── CHECK MANDANT LICENSE ────────────────────────────────────────
 // Check mandant license when adding driver
 function checkLicense() {
   if (!currentMandant) return true;
@@ -2160,6 +2541,12 @@ function doLogout() {
 function refreshDriverHome() {
   document.getElementById('driver-welcome-name').textContent = currentUser.vorname + ' ' + currentUser.nachname;
   document.getElementById('driver-topbar-sub').textContent = 'Fahrer';
+  // Show/hide buttons based on modules
+  const moduleMap = { abfahrt: 'btn-abfahrt', pod: 'btn-pod', nachrichten: 'btn-nachrichten', fahrerdokumente: 'btn-fahrerdokumente' };
+  Object.entries(moduleMap).forEach(([mod, btnId]) => {
+    const btn = document.getElementById(btnId);
+    if (btn) btn.style.display = hasModule(mod) ? 'block' : 'none';
+  });
   const now = new Date();
   document.getElementById('driver-date').textContent = now.toLocaleDateString('de-DE', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
   // Notifications
@@ -2178,7 +2565,8 @@ function initAbfahrt() {
   abfahrtPhotos = {};
   const container = document.getElementById('abfahrt-questions');
   container.innerHTML = '';
-  QUESTIONS.forEach((q, i) => {
+  const questions = getMandantQuestions();
+  questions.forEach((q, i) => {
     const div = document.createElement('div');
     div.className = 'question-card';
     div.id = `qcard-${i}`;
@@ -2217,7 +2605,7 @@ function setAnswer(idx, val, btn) {
 
 function updateAbfahrtProgress() {
   const answered = Object.keys(abfahrtAnswers).length;
-  const total = QUESTIONS.length;
+  const total = getMandantQuestions().length;
   const pct = (answered / total) * 100;
   document.getElementById('abfahrt-progress').style.width = pct + '%';
   const isComplete = answered === total;
@@ -2256,11 +2644,12 @@ function renderAbfahrtPhotos(idx) {
 }
 
 async function submitAbfahrt() {
-  for (let i = 0; i < QUESTIONS.length; i++) {
+  const qs = getMandantQuestions();
+  for (let i = 0; i < qs.length; i++) {
     if (!abfahrtAnswers[i]) { showToast('⚠️ Bitte alle Fragen beantworten (Frage ' + (i+1) + ')', 'error'); return; }
   }
   const sigData = getSigData('sig-canvas-abfahrt');
-  const answers = QUESTIONS.map((q, i) => ({
+  const answers = getMandantQuestions().map((q, i) => ({
     question: q, answer: abfahrtAnswers[i],
     remark: document.getElementById(`remark-${i}`)?.value || '',
     photos: abfahrtPhotos[i] || []
@@ -2813,7 +3202,25 @@ function refreshAdmin() {
   document.getElementById('stat-pods').textContent = DB.pods.length;
   document.getElementById('stat-maengel').textContent = maengel;
   populateFilterDropdowns();
+  // Show/hide admin menu buttons based on modules
+  const adminModuleMap = {
+    abfahrt: 'menu-btn-kontrollen',
+    pod: 'menu-btn-pods',
+    nachrichten: ['menu-btn-nachrichten','menu-btn-fahrermsgs'],
+    fuhrpark: 'menu-btn-fuhrpark'
+  };
+  Object.entries(adminModuleMap).forEach(([mod, btnIds]) => {
+    const ids = Array.isArray(btnIds) ? btnIds : [btnIds];
+    ids.forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) btn.style.display = hasModule(mod) ? 'flex' : 'none';
+    });
+  });
   adminNav('dashboard');
+}
+
+function renderFuhrpark() {
+  // Placeholder - full implementation in next phase
 }
 
 let adminWeeklyChart = null;
@@ -2842,6 +3249,7 @@ function adminNav(name) {
   if (name === 'pods') { populateFilterDropdowns(); renderPODs(); }
   if (name === 'nachrichten') { populateFilterDropdowns(); renderSentNotifs(); }
   if (name === 'fahrermsgs') renderFahrerMsgs();
+  if (name === 'fuhrpark') renderFuhrpark();
   if (name === 'dashboard') renderAdminDashboard();
   // Scroll to top
   const pc = document.getElementById('admin-page-content');
@@ -2862,6 +3270,12 @@ function closeAdminMenu() {
 }
 
 function renderAdminDashboard() {
+  // Show/hide quick actions based on modules
+  const qaMap = { nachrichten:'qa-nachrichten', abfahrt:'qa-kontrollen', pod:'qa-pods', fuhrpark:'qa-fuhrpark' };
+  Object.entries(qaMap).forEach(([mod, id]) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = hasModule(mod) ? 'flex' : 'none';
+  });
   // Driver activity
   const actList = document.getElementById('driver-activity-list');
   if (actList) {
