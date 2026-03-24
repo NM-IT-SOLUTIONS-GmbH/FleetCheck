@@ -867,6 +867,7 @@
       <div class="topbar-title">🗺️ Fahrzeug-Tracking</div>
       <div class="topbar-sub" id="tracking-last-update">Wird geladen...</div>
     </div>
+    <button class="btn btn-secondary btn-sm" onclick="openVehicleMgmt()" style="font-size:12px">🚛 Fahrzeuge</button>
     <button class="btn btn-secondary btn-sm" onclick="toggleVehicleList()" id="btn-vehicle-list">📋</button>
     <button class="btn btn-primary btn-sm" onclick="refreshTracking()">🔄</button>
   </div>
@@ -894,6 +895,63 @@
       <input type="text" id="vehicle-search" placeholder="Fahrzeug suchen..." oninput="filterVehicleList(this.value)" style="width:100%;padding:10px 16px;border:none;border-bottom:1px solid var(--border);font-size:13px;outline:none;background:var(--surface2)">
       <div id="vehicle-list-content"></div>
     </div>
+  </div>
+</div>
+
+<!-- ─── MODAL: FAHRZEUG BEARBEITEN ─── -->
+<div class="modal-overlay" id="modal-vehicle">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-vehicle-title">🚛 Fahrzeug bearbeiten</div>
+    <input type="hidden" id="v-id">
+    <div class="form-group">
+      <label>Device-ID (GPS-Tracker)</label>
+      <input type="text" id="v-deviceId" placeholder="z.B. 351340" readonly style="opacity:0.7">
+    </div>
+    <div class="form-group">
+      <label>Kennzeichen</label>
+      <input type="text" id="v-kennzeichen" placeholder="z.B. WES-NM 123">
+    </div>
+    <div class="form-group">
+      <label>Fahrzeugname / Beschreibung</label>
+      <input type="text" id="v-name" placeholder="z.B. MAN TGX 18.510 – Kühler">
+    </div>
+    <div class="form-group">
+      <label>Zugewiesener Fahrer</label>
+      <select id="v-driverId" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-size:14px">
+        <option value="">— Nicht zugewiesen —</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Notizen (optional)</label>
+      <textarea id="v-notes" placeholder="z.B. Wartung fällig am 15.04..."></textarea>
+    </div>
+    <button class="btn btn-primary" onclick="saveVehicle()">💾 Speichern</button>
+    <button class="btn btn-secondary mt-8" onclick="deleteVehicle()" id="delete-vehicle-btn" class="hidden">🗑 Fahrzeug entfernen</button>
+    <button class="btn btn-secondary mt-8" onclick="closeModal('modal-vehicle')">Abbrechen</button>
+  </div>
+</div>
+
+<!-- ─── MODAL: FAHRZEUGLISTE VERWALTEN ─── -->
+<div class="modal-overlay" id="modal-vehicle-list">
+  <div class="modal" style="max-height:85vh;display:flex;flex-direction:column">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🚛 Fahrzeuge verwalten</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5">
+      Hier kannst du GPS-Tracker Device-IDs Kennzeichen und Fahrern zuordnen. 
+      Neue Geräte aus der API werden automatisch erkannt.
+    </p>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <input type="text" id="vehicle-mgmt-search" placeholder="Suche nach Kennzeichen, ID, Fahrer..." oninput="renderVehicleMgmtList()" style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--text)">
+      <button class="btn btn-primary btn-sm" onclick="autoImportVehicles()" style="white-space:nowrap">📡 Auto-Import</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="btn btn-secondary btn-sm" onclick="filterVehicleMgmt('all')" id="vm-all" style="font-size:11px;background:var(--accent);color:#fff">Alle</button>
+      <button class="btn btn-secondary btn-sm" onclick="filterVehicleMgmt('assigned')" id="vm-assigned" style="font-size:11px">✅ Zugewiesen</button>
+      <button class="btn btn-secondary btn-sm" onclick="filterVehicleMgmt('unassigned')" id="vm-unassigned" style="font-size:11px">⚠️ Unbenannt</button>
+    </div>
+    <div id="vehicle-mgmt-list" style="flex:1;overflow-y:auto;margin:0 -20px;padding:0 20px"></div>
+    <button class="btn btn-secondary mt-8" onclick="closeModal('modal-vehicle-list')">Schließen</button>
   </div>
 </div>
 
@@ -1158,7 +1216,8 @@ const DB = {
   checks: [],
   pods: [],
   notifications: [],
-  driverMessages: []
+  driverMessages: [],
+  vehicles: []
 };
 
 const QUESTIONS = [
@@ -1628,7 +1687,7 @@ function doLogin() {
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value.trim();
   const admin = DB.admins.find(a => a.username === u && a.password === p);
-  if (admin) { currentUser = admin; currentRole = 'admin'; goTo('screen-admin-home'); loadO365Settings(); initEmailJS(); loadDriversFromLocal(); setTimeout(() => { initFirebase(); setTimeout(setupDriversFirebaseSync, 1000); }, 500); return; }
+  if (admin) { currentUser = admin; currentRole = 'admin'; goTo('screen-admin-home'); loadO365Settings(); initEmailJS(); loadDriversFromLocal(); loadVehiclesFromLocal(); setTimeout(() => { initFirebase(); setTimeout(() => { setupDriversFirebaseSync(); setupVehiclesFirebaseSync(); }, 1000); }, 500); return; }
   const driver = DB.drivers.find(d => d.username === u && d.password === p && d.status === 'active');
   if (driver) { currentUser = driver; currentRole = 'driver'; goTo('screen-driver-home'); loadDriversFromLocal(); setTimeout(initFirebase, 500); return; }
   showToast('❌ Benutzername oder Kennwort falsch', 'error');
@@ -2759,13 +2818,260 @@ function showToast(msg, type = '') {
 }
 
 // ─── VEHICLE TRACKING ────────────────────────────────────────────
-const GPS_API_URL = 'https://gps2.logisat.pl/atlas/api2025/positions?password=api2025';
+const GPS_API_BASE = 'https://gps2.logisat.pl/atlas/api2025/positions?password=api2025';
+const CORS_PROXIES = [
+  '',  // Direct (works if CORS is enabled or same-origin)
+  'https://corsproxy.io/?',
+  'https://api.allorigins.win/raw?url='
+];
+let gpsWorkingProxy = null; // Cache the proxy that works
 let trackingMap = null;
 let trackingMarkers = [];
 let trackingData = [];
 let trackingFilter = 'all';
 let trackingRefreshTimer = null;
 let vehicleListOpen = false;
+let vehicleMgmtFilter = 'all';
+
+// ─── VEHICLE DATABASE ────────────────────────────────────────────
+function loadVehiclesFromLocal() {
+  try {
+    const stored = localStorage.getItem('fc_vehicles');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed && parsed.length > 0) DB.vehicles = parsed;
+    }
+  } catch(e) {}
+}
+loadVehiclesFromLocal();
+
+function saveVehiclesToLocal() {
+  try { localStorage.setItem('fc_vehicles', JSON.stringify(DB.vehicles)); } catch(e) {}
+}
+
+function setupVehiclesFirebaseSync() {
+  if (!firebaseDB) return;
+  firebaseDB.ref('vehicles').on('value', snap => {
+    const data = snap.val() || {};
+    const fbVehicles = Object.values(data);
+    if (fbVehicles.length > 0) {
+      DB.vehicles = fbVehicles;
+      saveVehiclesToLocal();
+    }
+  });
+}
+
+function getVehicleInfo(deviceId) {
+  const v = DB.vehicles.find(vh => vh.deviceId === deviceId);
+  if (!v) return { label: deviceId, kennzeichen: '', name: '', driverName: '', driverId: '' };
+  const driver = v.driverId ? DB.drivers.find(d => d.id === v.driverId) : null;
+  const driverName = driver ? driver.vorname + ' ' + driver.nachname : '';
+  const label = v.kennzeichen || v.name || deviceId;
+  return { label, kennzeichen: v.kennzeichen || '', name: v.name || '', driverName, driverId: v.driverId || '', notes: v.notes || '' };
+}
+
+function getVehicleDisplayName(deviceId) {
+  const info = getVehicleInfo(deviceId);
+  return info.kennzeichen || info.name || deviceId;
+}
+
+function autoImportVehicles() {
+  let imported = 0;
+  trackingData.forEach(v => {
+    if (!DB.vehicles.find(vh => vh.deviceId === v.deviceId)) {
+      DB.vehicles.push({
+        id: 'v_' + v.deviceId,
+        deviceId: v.deviceId,
+        kennzeichen: '',
+        name: '',
+        driverId: '',
+        notes: ''
+      });
+      imported++;
+    }
+  });
+  saveVehiclesToLocal();
+  if (firebaseDB) DB.vehicles.forEach(v => firebaseDB.ref('vehicles/' + v.id).set(v));
+  renderVehicleMgmtList();
+  if (imported > 0) showToast('✅ ' + imported + ' neue Fahrzeuge importiert', 'success');
+  else showToast('ℹ️ Alle Geräte sind bereits bekannt', '');
+}
+
+function openVehicleMgmt() {
+  // Populate driver dropdown
+  populateVehicleDriverDropdown();
+  renderVehicleMgmtList();
+  openModal('modal-vehicle-list');
+}
+
+function populateVehicleDriverDropdown() {
+  const sel = document.getElementById('v-driverId');
+  const current = sel.value;
+  while (sel.options.length > 1) sel.remove(1);
+  DB.drivers.filter(d => d.status === 'active').forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.id;
+    opt.textContent = d.vorname + ' ' + d.nachname;
+    sel.appendChild(opt);
+  });
+  sel.value = current;
+}
+
+function filterVehicleMgmt(filter) {
+  vehicleMgmtFilter = filter;
+  ['all','assigned','unassigned'].forEach(f => {
+    const btn = document.getElementById('vm-' + f);
+    if (btn) {
+      if (f === filter) { btn.style.background = 'var(--accent)'; btn.style.color = '#fff'; }
+      else { btn.style.background = ''; btn.style.color = ''; }
+    }
+  });
+  renderVehicleMgmtList();
+}
+
+function renderVehicleMgmtList() {
+  const list = document.getElementById('vehicle-mgmt-list');
+  if (!list) return;
+  const search = (document.getElementById('vehicle-mgmt-search')?.value || '').toLowerCase();
+  
+  let vehicles = [...DB.vehicles];
+  
+  // Filter
+  if (vehicleMgmtFilter === 'assigned') vehicles = vehicles.filter(v => v.kennzeichen || v.name);
+  if (vehicleMgmtFilter === 'unassigned') vehicles = vehicles.filter(v => !v.kennzeichen && !v.name);
+  
+  // Search
+  if (search) {
+    vehicles = vehicles.filter(v => {
+      const info = getVehicleInfo(v.deviceId);
+      return [v.deviceId, v.kennzeichen, v.name, info.driverName].join(' ').toLowerCase().includes(search);
+    });
+  }
+
+  // Sort: assigned first, then by kennzeichen
+  vehicles.sort((a, b) => {
+    const aHas = a.kennzeichen || a.name ? 0 : 1;
+    const bHas = b.kennzeichen || b.name ? 0 : 1;
+    if (aHas !== bHas) return aHas - bHas;
+    return (a.kennzeichen || a.deviceId).localeCompare(b.kennzeichen || b.deviceId);
+  });
+
+  list.innerHTML = '';
+  if (vehicles.length === 0) {
+    list.innerHTML = '<p style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Keine Fahrzeuge gefunden. Klicke "📡 Auto-Import" um Geräte zu laden.</p>';
+    return;
+  }
+
+  const unassignedCount = DB.vehicles.filter(v => !v.kennzeichen && !v.name).length;
+  if (unassignedCount > 0) {
+    list.innerHTML = `<div style="background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.3);border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#c68a10">
+      ⚠️ <strong>${unassignedCount}</strong> Fahrzeug(e) ohne Kennzeichen/Name – tippe drauf zum Bearbeiten.
+    </div>`;
+  }
+
+  vehicles.forEach(v => {
+    const info = getVehicleInfo(v.deviceId);
+    const gpsData = trackingData.find(t => t.deviceId === v.deviceId);
+    const status = gpsData ? gpsData._status : 'stale';
+    const isAssigned = v.kennzeichen || v.name;
+    
+    const item = document.createElement('div');
+    item.style.cssText = 'display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.15s';
+    item.onmouseenter = () => item.style.background = 'var(--surface2)';
+    item.onmouseleave = () => item.style.background = '';
+    item.innerHTML = `
+      <div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;background:${getStatusColor(status)}"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:14px;${isAssigned ? '' : 'color:var(--muted);font-style:italic'}">${isAssigned ? (v.kennzeichen || v.name) : '⚠️ Unbenannt'}</div>
+        <div style="font-size:11px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap">
+          <span>ID: ${v.deviceId}</span>
+          ${v.kennzeichen && v.name ? '<span>· ' + v.name + '</span>' : ''}
+          ${info.driverName ? '<span>· 👤 ' + info.driverName + '</span>' : ''}
+        </div>
+      </div>
+      <div style="font-size:18px;color:var(--muted)">✏️</div>
+    `;
+    item.onclick = () => openEditVehicle(v.deviceId);
+    list.appendChild(item);
+  });
+}
+
+function openEditVehicle(deviceId) {
+  const v = DB.vehicles.find(vh => vh.deviceId === deviceId);
+  populateVehicleDriverDropdown();
+  
+  if (v) {
+    document.getElementById('modal-vehicle-title').textContent = '🚛 Fahrzeug bearbeiten';
+    document.getElementById('v-id').value = v.id;
+    document.getElementById('v-deviceId').value = v.deviceId;
+    document.getElementById('v-kennzeichen').value = v.kennzeichen || '';
+    document.getElementById('v-name').value = v.name || '';
+    document.getElementById('v-driverId').value = v.driverId || '';
+    document.getElementById('v-notes').value = v.notes || '';
+    document.getElementById('delete-vehicle-btn').classList.remove('hidden');
+  } else {
+    document.getElementById('modal-vehicle-title').textContent = '🚛 Neues Fahrzeug';
+    document.getElementById('v-id').value = '';
+    document.getElementById('v-deviceId').value = deviceId || '';
+    document.getElementById('v-kennzeichen').value = '';
+    document.getElementById('v-name').value = '';
+    document.getElementById('v-driverId').value = '';
+    document.getElementById('v-notes').value = '';
+    document.getElementById('delete-vehicle-btn').classList.add('hidden');
+  }
+  openModal('modal-vehicle');
+}
+
+function saveVehicle() {
+  const id = document.getElementById('v-id').value;
+  const deviceId = document.getElementById('v-deviceId').value.trim();
+  const data = {
+    deviceId,
+    kennzeichen: document.getElementById('v-kennzeichen').value.trim(),
+    name: document.getElementById('v-name').value.trim(),
+    driverId: document.getElementById('v-driverId').value,
+    notes: document.getElementById('v-notes').value.trim()
+  };
+  
+  if (id) {
+    // Update existing
+    const idx = DB.vehicles.findIndex(v => v.id === id);
+    if (idx >= 0) DB.vehicles[idx] = { ...DB.vehicles[idx], ...data };
+    showToast('✅ Fahrzeug gespeichert', 'success');
+  } else {
+    // New vehicle
+    const newId = 'v_' + deviceId;
+    DB.vehicles.push({ id: newId, ...data });
+    showToast('✅ Fahrzeug angelegt', 'success');
+  }
+  
+  saveVehiclesToLocal();
+  if (firebaseDB) {
+    const vehicle = DB.vehicles.find(v => v.deviceId === deviceId);
+    if (vehicle) firebaseDB.ref('vehicles/' + vehicle.id).set(vehicle);
+  }
+  
+  closeModal('modal-vehicle');
+  renderVehicleMgmtList();
+  // Refresh tracking display
+  renderTrackingMarkers();
+  renderVehicleList();
+}
+
+function deleteVehicle() {
+  const id = document.getElementById('v-id').value;
+  if (!id) return;
+  if (!confirm('Fahrzeugzuordnung wirklich entfernen?')) return;
+  const idx = DB.vehicles.findIndex(v => v.id === id);
+  if (idx >= 0) DB.vehicles.splice(idx, 1);
+  if (firebaseDB) firebaseDB.ref('vehicles/' + id).remove();
+  saveVehiclesToLocal();
+  showToast('🗑 Fahrzeug entfernt', 'success');
+  closeModal('modal-vehicle');
+  renderVehicleMgmtList();
+  renderTrackingMarkers();
+  renderVehicleList();
+}
 
 function initTrackingMap() {
   if (trackingMap) { trackingMap.invalidateSize(); refreshTracking(); return; }
@@ -2829,22 +3135,52 @@ function formatHeading(deg) {
   return dirs[Math.round(deg / 22.5) % 16] + ' (' + deg + '°)';
 }
 
+async function fetchWithCorsProxy(url) {
+  // If we already know which proxy works, try it first
+  if (gpsWorkingProxy !== null) {
+    const proxyUrl = gpsWorkingProxy + (gpsWorkingProxy ? encodeURIComponent(url) : url);
+    const resp = await fetch(proxyUrl);
+    if (resp.ok) return resp;
+    // If it failed, reset and try all
+    gpsWorkingProxy = null;
+  }
+  
+  // Try each proxy
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const proxyUrl = proxy ? proxy + encodeURIComponent(url) : url;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const resp = await fetch(proxyUrl, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (resp.ok) {
+        gpsWorkingProxy = proxy;
+        console.log('GPS API connected via: ' + (proxy || 'direct'));
+        return resp;
+      }
+    } catch(e) {
+      console.warn('Proxy failed: ' + (proxy || 'direct'), e.message);
+    }
+  }
+  throw new Error('Keine Verbindung zur GPS-API möglich (CORS blockiert). Versuche einen anderen Browser oder richte einen Proxy ein.');
+}
+
 async function refreshTracking() {
   try {
     document.getElementById('tracking-last-update').textContent = '⏳ Aktualisiere...';
-    const response = await fetch(GPS_API_URL);
-    if (!response.ok) throw new Error('API Fehler: ' + response.status);
+    const response = await fetchWithCorsProxy(GPS_API_BASE);
     const data = await response.json();
     trackingData = (data.positionList || []).map(v => ({ ...v, _status: getVehicleStatus(v) }));
     renderTrackingMarkers();
     updateTrackingStats();
     renderVehicleList();
     const now = new Date().toLocaleTimeString('de-DE');
-    document.getElementById('tracking-last-update').textContent = 'Aktualisiert: ' + now + ' · ' + trackingData.length + ' Fahrzeuge';
+    const proxyLabel = gpsWorkingProxy ? ' (Proxy)' : '';
+    document.getElementById('tracking-last-update').textContent = 'Aktualisiert: ' + now + ' · ' + trackingData.length + ' Fahrzeuge' + proxyLabel;
   } catch(e) {
     console.error('Tracking error:', e);
-    document.getElementById('tracking-last-update').textContent = '⚠️ Fehler beim Laden: ' + e.message;
-    showToast('⚠️ GPS-Daten konnten nicht geladen werden', 'error');
+    document.getElementById('tracking-last-update').textContent = '⚠️ ' + e.message;
+    showToast('⚠️ GPS: ' + e.message, 'error');
   }
 }
 
@@ -2859,12 +3195,14 @@ function renderTrackingMarkers() {
     const lat = v.coordinate.latitude;
     const lng = v.coordinate.longitude;
     const status = v._status;
-    const shortId = v.deviceId.length > 8 ? '…' + v.deviceId.slice(-6) : v.deviceId;
+    const vInfo = getVehicleInfo(v.deviceId);
+    const displayName = vInfo.kennzeichen || vInfo.name || v.deviceId;
+    const shortLabel = vInfo.kennzeichen || (v.deviceId.length > 8 ? '…' + v.deviceId.slice(-6) : v.deviceId);
 
     // Custom icon
     const icon = L.divIcon({
       className: '',
-      html: `<div class="vehicle-marker ${status}" title="${v.deviceId}">🚛</div>`,
+      html: `<div class="vehicle-marker ${status}" title="${displayName}">🚛</div>`,
       iconSize: [32, 32],
       iconAnchor: [16, 16],
       popupAnchor: [0, -18]
@@ -2873,29 +3211,41 @@ function renderTrackingMarkers() {
     const marker = L.marker([lat, lng], { icon }).addTo(trackingMap);
 
     // Popup content
+    const driverRow = vInfo.driverName ? `<div class="vp-row"><span class="vp-label">Fahrer</span><span class="vp-val">👤 ${vInfo.driverName}</span></div>` : '';
+    const nameRow = vInfo.name ? `<div class="vp-row"><span class="vp-label">Fahrzeug</span><span class="vp-val">${vInfo.name}</span></div>` : '';
+    const notesRow = vInfo.notes ? `<div style="font-size:11px;color:var(--muted);margin-top:6px;padding:6px 8px;background:#f5f7fa;border-radius:6px">📝 ${vInfo.notes}</div>` : '';
+    
     const popupHtml = `
-      <div class="vehicle-popup" style="min-width:220px">
+      <div class="vehicle-popup" style="min-width:230px">
         <div class="vp-header">
-          <strong style="font-size:14px">🚛 ${v.deviceId}</strong>
+          <strong style="font-size:14px">🚛 ${displayName}</strong>
           <span class="vp-status ${status}">${getStatusLabel(status)}</span>
         </div>
+        ${vInfo.kennzeichen ? `<div style="font-size:11px;color:var(--muted);margin:-4px 0 8px">ID: ${v.deviceId}</div>` : ''}
+        ${driverRow}
+        ${nameRow}
         <div class="vp-row"><span class="vp-label">Geschwindigkeit</span><span class="vp-val">${formatSpeed(v.speed)}</span></div>
         <div class="vp-row"><span class="vp-label">Richtung</span><span class="vp-val">${formatHeading(v.heading)}</span></div>
         <div class="vp-row"><span class="vp-label">Zündung</span><span class="vp-val">${v.ignitionState === 'ON' ? '🟢 An' : '⚪ Aus'}</span></div>
         <div class="vp-row"><span class="vp-label">Letztes Signal</span><span class="vp-val">${formatDateTime(v.dateTime)}</span></div>
         <div class="vp-row"><span class="vp-label">Position</span><span class="vp-val" style="font-size:10px">${lat.toFixed(5)}, ${lng.toFixed(5)}</span></div>
-        <div style="margin-top:8px">
+        ${notesRow}
+        <div style="display:flex;gap:6px;margin-top:8px">
           <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" rel="noopener" 
-             style="display:block;text-align:center;padding:6px;background:var(--accent);color:#fff;border-radius:8px;text-decoration:none;font-size:12px;font-weight:600">
-            📍 In Google Maps öffnen
+             style="flex:1;text-align:center;padding:6px;background:var(--accent);color:#fff;border-radius:8px;text-decoration:none;font-size:11px;font-weight:600">
+            📍 Google Maps
           </a>
+          <button onclick="openEditVehicle('${v.deviceId}')" 
+             style="flex:1;text-align:center;padding:6px;background:var(--surface3);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:11px;font-weight:600;cursor:pointer">
+            ✏️ Bearbeiten
+          </button>
         </div>
       </div>
     `;
-    marker.bindPopup(popupHtml, { maxWidth: 280 });
+    marker.bindPopup(popupHtml, { maxWidth: 300 });
 
     // Tooltip on hover
-    marker.bindTooltip(shortId + (v.speed > 0 ? ' · ' + v.speed + ' km/h' : ''), {
+    marker.bindTooltip(shortLabel + (v.speed > 0 ? ' · ' + v.speed + ' km/h' : '') + (vInfo.driverName ? ' · ' + vInfo.driverName : ''), {
       direction: 'top', offset: [0, -18], className: '', permanent: false
     });
 
@@ -2950,20 +3300,31 @@ function renderVehicleList() {
     const order = { driving: 0, idle: 1, off: 2, stale: 3 };
     return (order[a._status] || 9) - (order[b._status] || 9);
   });
-  if (searchVal) vehicles = vehicles.filter(v => v.deviceId.toLowerCase().includes(searchVal));
+  if (searchVal) vehicles = vehicles.filter(v => {
+    const info = getVehicleInfo(v.deviceId);
+    return [v.deviceId, info.kennzeichen, info.name, info.driverName].join(' ').toLowerCase().includes(searchVal);
+  });
   list.innerHTML = '';
   if (vehicles.length === 0) {
     list.innerHTML = '<p style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Keine Fahrzeuge gefunden</p>';
     return;
   }
   vehicles.forEach(v => {
+    const info = getVehicleInfo(v.deviceId);
+    const displayName = info.kennzeichen || info.name || v.deviceId;
+    const subLine = [
+      getStatusLabel(v._status),
+      v.speed > 0 ? v.speed + ' km/h' : '',
+      info.driverName ? '👤 ' + info.driverName : '',
+      info.kennzeichen ? 'ID: …' + v.deviceId.slice(-6) : ''
+    ].filter(Boolean).join(' · ');
     const item = document.createElement('div');
     item.className = 'vehicle-list-item';
     item.innerHTML = `
       <div class="vli-dot" style="background:${getStatusColor(v._status)}"></div>
       <div class="vli-info">
-        <div class="vli-id">${v.deviceId}</div>
-        <div class="vli-meta">${getStatusLabel(v._status)} ${v.speed > 0 ? '· ' + v.speed + ' km/h' : ''} · ${formatDateTime(v.dateTime)}</div>
+        <div class="vli-id">${displayName}</div>
+        <div class="vli-meta">${subLine}</div>
       </div>
     `;
     item.onclick = () => focusVehicle(v.deviceId);
