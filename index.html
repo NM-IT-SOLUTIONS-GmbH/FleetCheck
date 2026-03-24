@@ -2819,12 +2819,19 @@ function showToast(msg, type = '') {
 
 // ─── VEHICLE TRACKING ────────────────────────────────────────────
 const GPS_API_BASE = 'https://gps2.logisat.pl/atlas/api2025/positions?password=api2025';
+
+// ⚠️ WICHTIG: Ersetze die Worker-URL unten mit deiner eigenen Cloudflare Worker URL!
+// Anleitung: Siehe Schritt-für-Schritt weiter unten oder README
+const CLOUDFLARE_WORKER_URL = 'https://fleet-gps-proxy.nmitsolutionsgmbh.workers.dev';
+
 const CORS_PROXIES = [
-  '',  // Direct (works if CORS is enabled or same-origin)
-  'https://corsproxy.io/?',
-  'https://api.allorigins.win/raw?url='
+  { name: 'cloudflare-worker', url: CLOUDFLARE_WORKER_URL, wrap: false, encode: false },
+  { name: 'local-proxy', url: 'gps_proxy.php', wrap: false, encode: false },
+  { name: 'direct', url: '', wrap: false, encode: false },
+  { name: 'corsproxy.io', url: 'https://corsproxy.io/?', wrap: false, encode: true },
+  { name: 'allorigins', url: 'https://api.allorigins.win/get?url=', wrap: true, encode: true },
 ];
-let gpsWorkingProxy = null; // Cache the proxy that works
+let gpsWorkingProxy = null;
 let trackingMap = null;
 let trackingMarkers = [];
 let trackingData = [];
@@ -3138,31 +3145,55 @@ function formatHeading(deg) {
 async function fetchWithCorsProxy(url) {
   // If we already know which proxy works, try it first
   if (gpsWorkingProxy !== null) {
-    const proxyUrl = gpsWorkingProxy + (gpsWorkingProxy ? encodeURIComponent(url) : url);
-    const resp = await fetch(proxyUrl);
-    if (resp.ok) return resp;
-    // If it failed, reset and try all
-    gpsWorkingProxy = null;
+    try {
+      const result = await tryProxy(gpsWorkingProxy, url);
+      if (result) return result;
+    } catch(e) {}
+    gpsWorkingProxy = null; // Reset if it failed
   }
   
   // Try each proxy
   for (const proxy of CORS_PROXIES) {
     try {
-      const proxyUrl = proxy ? proxy + encodeURIComponent(url) : url;
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-      const resp = await fetch(proxyUrl, { signal: controller.signal });
-      clearTimeout(timeout);
-      if (resp.ok) {
+      console.log('Trying GPS via: ' + proxy.name);
+      const result = await tryProxy(proxy, url);
+      if (result) {
         gpsWorkingProxy = proxy;
-        console.log('GPS API connected via: ' + (proxy || 'direct'));
-        return resp;
+        console.log('✅ GPS connected via: ' + proxy.name);
+        return result;
       }
     } catch(e) {
-      console.warn('Proxy failed: ' + (proxy || 'direct'), e.message);
+      console.warn('❌ ' + proxy.name + ' failed:', e.message);
     }
   }
-  throw new Error('Keine Verbindung zur GPS-API möglich (CORS blockiert). Versuche einen anderen Browser oder richte einen Proxy ein.');
+  throw new Error('Keine Verbindung zur GPS-API. Bitte gps_proxy.php auf deinen Webserver legen (gleicher Ordner wie index.html).');
+}
+
+async function tryProxy(proxy, url) {
+  let fetchUrl;
+  if (proxy.url === '') {
+    fetchUrl = url; // Direct
+  } else if (proxy.encode) {
+    fetchUrl = proxy.url + encodeURIComponent(url);
+  } else {
+    fetchUrl = proxy.url; // Local proxy (has URL hardcoded)
+  }
+  
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  const resp = await fetch(fetchUrl, { signal: controller.signal });
+  clearTimeout(timeout);
+  
+  if (!resp.ok) return null;
+  
+  if (proxy.wrap) {
+    // allorigins wraps in { contents: "..." }
+    const wrapper = await resp.json();
+    const inner = typeof wrapper.contents === 'string' ? JSON.parse(wrapper.contents) : wrapper.contents;
+    return { ok: true, json: async () => inner };
+  }
+  
+  return resp;
 }
 
 async function refreshTracking() {
@@ -3175,12 +3206,15 @@ async function refreshTracking() {
     updateTrackingStats();
     renderVehicleList();
     const now = new Date().toLocaleTimeString('de-DE');
-    const proxyLabel = gpsWorkingProxy ? ' (Proxy)' : '';
+    const proxyLabel = gpsWorkingProxy && gpsWorkingProxy.name !== 'direct' ? ' · via ' + gpsWorkingProxy.name : '';
     document.getElementById('tracking-last-update').textContent = 'Aktualisiert: ' + now + ' · ' + trackingData.length + ' Fahrzeuge' + proxyLabel;
   } catch(e) {
     console.error('Tracking error:', e);
+    const isFirstLoad = trackingData.length === 0;
     document.getElementById('tracking-last-update').textContent = '⚠️ ' + e.message;
-    showToast('⚠️ GPS: ' + e.message, 'error');
+    if (isFirstLoad) {
+      showToast('⚠️ GPS-Verbindung fehlgeschlagen – Proxy nötig', 'error');
+    }
   }
 }
 
